@@ -4,8 +4,8 @@ export default function Home() {
   return (
     <div>
       <p className="text-red-500">ade</p>
-      <Link href={"/signup"}>Create a room</Link>
-      <Link href={"/login"}>Log in</Link>
+      <Link href={"/auth/signup"}>Create a room</Link>
+      <Link href={"/auth/login"}>Log in</Link>
     </div>
   );
 }
