@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -5,10 +7,11 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { GoogleSignInBtn } from "../btns/google-sign-in-btn";
 import { Logo } from "../logo";
-import { useActionState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { INITIAL_FORM_ACTION_STATE } from "@/lib/constants";
 import { login } from "@/app/auth/login/actions";
 import { useDisplayStateError } from "@/hooks/use-display-state-error";
+import { useFormErrorReset } from "@/hooks/use-form-error-reset";
 import { InlineLoader } from "../loaders/inline-loader";
 
 export function LoginForm({
@@ -19,6 +22,30 @@ export function LoginForm({
     login,
     INITIAL_FORM_ACTION_STATE
   );
+
+  const { displayErrors, clearFieldError } = useFormErrorReset(state.errors);
+
+  // State to preserve form data
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  // Handle input changes
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    clearFieldError(field);
+  };
+
+  // Clear form only on successful submission
+  useEffect(() => {
+    if (state.success) {
+      setFormData({
+        email: "",
+        password: "",
+      });
+    }
+  }, [state.success]);
 
   useDisplayStateError(state);
 
@@ -52,7 +79,15 @@ export function LoginForm({
                 name="email"
                 placeholder="person@mail.com"
                 required
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
               />
+
+              {displayErrors?.email && (
+                <p className="text-destructive text-sm -mt-1.5">
+                  {state.errors.email}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-3">
@@ -66,7 +101,20 @@ export function LoginForm({
                   Forgot password?
                 </Link>
               </div>
-              <Input id="password" type="password" name="password" required />
+              <Input
+                id="password"
+                type="password"
+                name="password"
+                required
+                value={formData.password}
+                onChange={(e) => handleInputChange("password", e.target.value)}
+              />
+
+              {displayErrors?.password && (
+                <p className="text-destructive text-sm -mt-1.5">
+                  {state.errors.password}
+                </p>
+              )}
             </div>
 
             <Button type="submit" className="w-full">
