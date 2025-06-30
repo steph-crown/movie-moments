@@ -5,14 +5,11 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { GoogleSignInBtn } from "../btns/google-sign-in-btn";
 import { Logo } from "../logo";
-import { useToast } from "@/hooks/use-toast";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
-  const { showSuccess } = useToast();
-
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form>

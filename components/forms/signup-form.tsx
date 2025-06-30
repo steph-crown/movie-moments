@@ -1,18 +1,34 @@
-import { Button } from "@/components/ui/button";
+"use client";
+
+import { signup } from "@/app/auth/signup/actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useDisplayStateError } from "@/hooks/use-display-state-error";
+import { INITIAL_FORM_ACTION_STATE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useActionState } from "react";
 import { GoogleSignInBtn } from "../btns/google-sign-in-btn";
+import { InlineLoader } from "../loaders/inline-loader";
 import { Logo } from "../logo";
+import { Button } from "../ui/button";
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [state, formAction, isPending] = useActionState(
+    signup,
+    INITIAL_FORM_ACTION_STATE
+  );
+
+  useDisplayStateError(state);
+
+  console.log({ isPending });
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form>
+      <form action={formAction}>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2">
             <Logo className="mb-5" />
@@ -37,6 +53,7 @@ export function SignupForm({
               <Input
                 id="email"
                 type="email"
+                name="email"
                 placeholder="m@example.com"
                 required
               />
@@ -44,21 +61,23 @@ export function SignupForm({
 
             <div className="grid gap-3">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" required />
+              <Input id="name" name="name" required />
             </div>
 
             <div className="grid gap-3">
               <Label htmlFor="userName">Username</Label>
-              <Input id="userName" required />
+              <Input id="userName" name="userName" required />
             </div>
 
             <div className="grid gap-3">
-              <Label htmlFor="email">Password</Label>
-              <Input id="password" type="password" required />
+              <Label htmlFor="password">Password</Label>
+              <Input id="password" name="password" type="password" required />
             </div>
 
+            {/* <SubmitBtn className="w-full">Login</SubmitBtn> */}
             <Button type="submit" className="w-full">
               Login
+              {isPending && <InlineLoader />}
             </Button>
           </div>
 
