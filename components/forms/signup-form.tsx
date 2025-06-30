@@ -74,7 +74,7 @@ export function SignupForm({
 
             {/* <SubmitBtn className="w-full">Login</SubmitBtn> */}
             <Button type="submit" className="w-full">
-              Login
+              Sign up
               {isPending && <InlineLoader />}
             </Button>
           </div>
