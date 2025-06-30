@@ -4,11 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
+import { IFormState } from "@/interfaces/form.interface";
 
-export async function login(
-  prevState: Record<string, string>,
-  formData: FormData
-) {
+export async function login(prevState: IFormState, formData: FormData) {
   const supabase = await createClient();
 
   // type-casting here for convenience

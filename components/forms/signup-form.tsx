@@ -4,10 +4,11 @@ import { signup } from "@/app/auth/signup/actions";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDisplayStateError } from "@/hooks/use-display-state-error";
+import { useFormErrorReset } from "@/hooks/use-form-error-reset";
 import { INITIAL_FORM_ACTION_STATE } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { GoogleSignInBtn } from "../btns/google-sign-in-btn";
 import { InlineLoader } from "../loaders/inline-loader";
 import { Logo } from "../logo";
@@ -21,6 +22,34 @@ export function SignupForm({
     signup,
     INITIAL_FORM_ACTION_STATE
   );
+
+  const { displayErrors, clearFieldError } = useFormErrorReset(state.errors);
+
+  // State to preserve form data
+  const [formData, setFormData] = useState({
+    email: "",
+    name: "",
+    username: "",
+    password: "",
+  });
+
+  // Handle input changes
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    clearFieldError(field);
+  };
+
+  // Clear form only on successful submission
+  useEffect(() => {
+    if (state.success) {
+      setFormData({
+        email: "",
+        name: "",
+        username: "",
+        password: "",
+      });
+    }
+  }, [state.success]);
 
   useDisplayStateError(state);
 
@@ -54,25 +83,70 @@ export function SignupForm({
                 name="email"
                 placeholder="m@example.com"
                 required
+                value={formData.email}
+                onChange={(e) => handleInputChange("email", e.target.value)}
               />
+
+              {displayErrors?.email && (
+                <p className="text-destructive text-sm -mt-1.5">
+                  {state.errors.email}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-3">
               <Label htmlFor="name">Name</Label>
-              <Input id="name" name="name" required />
+              <Input
+                id="name"
+                name="name"
+                required
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+              />
+
+              {displayErrors?.name && (
+                <p className="text-destructive text-sm -mt-1.5">
+                  {state.errors.name}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-3">
-              <Label htmlFor="userName">Username</Label>
-              <Input id="userName" name="userName" required />
+              <Label htmlFor="username">Username</Label>
+              <Input
+                id="username"
+                name="username"
+                required
+                value={formData.username}
+                onChange={(e) => handleInputChange("username", e.target.value)}
+              />
+
+              {displayErrors?.username && (
+                <p className="text-destructive text-sm -mt-1.5">
+                  {state.errors.username}
+                </p>
+              )}
             </div>
 
             <div className="grid gap-3">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required />
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                required
+                placeholder=""
+                value={formData.password}
+                onChange={(e) => handleInputChange("password", e.target.value)}
+              />
+
+              {displayErrors?.password && (
+                <p className="text-destructive text-sm -mt-1.5">
+                  {state.errors.password}
+                </p>
+              )}
             </div>
 
-            {/* <SubmitBtn className="w-full">Login</SubmitBtn> */}
             <Button type="submit" className="w-full">
               Sign up
               {isPending && <InlineLoader />}

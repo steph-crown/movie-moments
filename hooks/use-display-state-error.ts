@@ -1,7 +1,8 @@
 import { useEffect } from "react";
 import { useToast } from "./use-toast";
+import { IFormState } from "@/interfaces/form.interface";
 
-export function useDisplayStateError(state: { error: string }) {
+export function useDisplayStateError(state: IFormState) {
   const { showError } = useToast();
 
   useEffect(() => {
