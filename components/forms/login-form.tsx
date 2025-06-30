@@ -5,14 +5,26 @@ import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { GoogleSignInBtn } from "../btns/google-sign-in-btn";
 import { Logo } from "../logo";
+import { useActionState } from "react";
+import { INITIAL_FORM_ACTION_STATE } from "@/lib/constants";
+import { login } from "@/app/auth/login/actions";
+import { useDisplayStateError } from "@/hooks/use-display-state-error";
+import { InlineLoader } from "../loaders/inline-loader";
 
 export function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const [state, formAction, isPending] = useActionState(
+    login,
+    INITIAL_FORM_ACTION_STATE
+  );
+
+  useDisplayStateError(state);
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <form>
+      <form action={formAction}>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2">
             <Logo className="mb-5" />
@@ -33,13 +45,19 @@ export function LoginForm({
 
           <div className="flex flex-col gap-6">
             <div className="grid gap-3">
-              <Label htmlFor="userName">Username</Label>
-              <Input id="userName" required />
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                name="email"
+                placeholder="person@mail.com"
+                required
+              />
             </div>
 
             <div className="grid gap-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="email">Password</Label>
+                <Label htmlFor="password">Password</Label>
 
                 <Link
                   href="/auth/forgot-password"
@@ -48,11 +66,11 @@ export function LoginForm({
                   Forgot password?
                 </Link>
               </div>
-              <Input id="password" type="password" required />
+              <Input id="password" type="password" name="password" required />
             </div>
 
             <Button type="submit" className="w-full">
-              Login
+              Login {isPending && <InlineLoader />}
             </Button>
           </div>
 

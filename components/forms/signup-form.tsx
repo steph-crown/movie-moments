@@ -24,8 +24,6 @@ export function SignupForm({
 
   useDisplayStateError(state);
 
-  console.log({ isPending });
-
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form action={formAction}>
