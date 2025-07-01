@@ -2,6 +2,7 @@
 "use client";
 
 import { Plus, Search, Edit2 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -41,6 +42,8 @@ import {
 } from "../ui/select";
 import { Badge } from "../ui/badge";
 import { useState } from "react";
+import { useContentSearch } from "@/hooks/use-content-search";
+import { SearchResult } from "@/interfaces/tmdb.interface";
 
 const STREAMING_PLATFORMS: StreamingPlatform[] = [
   "Netflix",
@@ -83,51 +86,11 @@ const FormSchema = z.object({
 type FormData = z.infer<typeof FormSchema>;
 type Step = "type" | "search" | "details";
 
-interface MockContent {
-  tmdb_id: number;
-  title: string;
-  content_type: "movie" | "series";
-  poster_path?: string;
-  release_date?: string;
-  first_air_date?: string;
-}
-
-// Mock search results for demo
-const mockSearchResults: MockContent[] = [
-  {
-    tmdb_id: 1396,
-    title: "Breaking Bad",
-    content_type: "series",
-    first_air_date: "2008-01-20",
-  },
-  {
-    tmdb_id: 1399,
-    title: "Game of Thrones",
-    content_type: "series",
-    first_air_date: "2011-04-17",
-  },
-  {
-    tmdb_id: 27205,
-    title: "Inception",
-    content_type: "movie",
-    release_date: "2010-07-16",
-  },
-  {
-    tmdb_id: 299534,
-    title: "Avengers: Endgame",
-    content_type: "movie",
-    release_date: "2019-04-26",
-  },
-];
-
 export function CreateRoomBtn() {
   const [step, setStep] = useState<Step>("type");
-  const [selectedContent, setSelectedContent] = useState<MockContent | null>(
+  const [selectedContent, setSelectedContent] = useState<SearchResult | null>(
     null
   );
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<MockContent[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
@@ -141,25 +104,16 @@ export function CreateRoomBtn() {
 
   const contentType = form.watch("content_type");
 
-  // Mock search function
-  const handleSearch = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    // Simulate API delay
-    setTimeout(() => {
-      const filtered = mockSearchResults.filter(
-        (item) =>
-          item.content_type === contentType &&
-          item.title.toLowerCase().includes(query.toLowerCase())
-      );
-      setSearchResults(filtered);
-      setIsSearching(false);
-    }, 500);
-  };
+  // Use the debounced search hook
+  const {
+    query: searchQuery,
+    setQuery: setSearchQuery,
+    results: searchResults,
+    isLoading: isSearching,
+    error: searchError,
+    clearResults,
+    clearError,
+  } = useContentSearch(contentType || "movie");
 
   const handleContentTypeSelect = () => {
     if (contentType) {
@@ -170,13 +124,14 @@ export function CreateRoomBtn() {
   const handleEditContentType = () => {
     setStep("type");
     setSelectedContent(null);
-    setSearchResults([]);
+    clearResults();
     setSearchQuery("");
+    clearError();
     form.setValue("content_tmdb_id", 0 as any);
     form.setValue("title", "");
   };
 
-  const handleContentSelect = (content: MockContent) => {
+  const handleContentSelect = (content: SearchResult) => {
     setSelectedContent(content);
     form.setValue("content_tmdb_id", content.tmdb_id);
     form.setValue("title", content.title); // Default room title to content title
@@ -199,8 +154,9 @@ export function CreateRoomBtn() {
   const resetForm = () => {
     setStep("type");
     setSelectedContent(null);
-    setSearchResults([]);
+    clearResults();
     setSearchQuery("");
+    clearError();
     form.reset();
   };
 
@@ -330,10 +286,7 @@ export function CreateRoomBtn() {
                           contentType === "movie" ? "movies" : "TV series"
                         }...`}
                         value={searchQuery}
-                        onChange={(e) => {
-                          setSearchQuery(e.target.value);
-                          handleSearch(e.target.value);
-                        }}
+                        onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10 !text-sm"
                       />
                     </div>
@@ -350,6 +303,29 @@ export function CreateRoomBtn() {
                         <p className="text-sm text-muted-foreground text-center py-4">
                           Searching...
                         </p>
+                      ) : searchError ? (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-destructive mb-2">
+                            {searchError}
+                          </p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              clearError();
+                              // Retry search by clearing and setting query again
+                              const currentQuery = searchQuery;
+                              setSearchQuery("");
+                              setTimeout(
+                                () => setSearchQuery(currentQuery),
+                                100
+                              );
+                            }}
+                          >
+                            Try Again
+                          </Button>
+                        </div>
                       ) : searchResults.length > 0 ? (
                         searchResults.map((item) => (
                           <button
@@ -358,14 +334,31 @@ export function CreateRoomBtn() {
                             onClick={() => handleContentSelect(item)}
                             className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent text-left"
                           >
-                            <div className="w-12 h-16 bg-muted rounded flex items-center justify-center">
-                              {item.content_type === "movie" ? "🎬" : "📺"}
+                            <div className="w-12 h-16 bg-muted rounded flex items-center justify-center overflow-hidden relative">
+                              {item.poster_path ? (
+                                <Image
+                                  src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                                  alt={item.title}
+                                  fill
+                                  className="object-cover"
+                                  sizes="48px"
+                                />
+                              ) : (
+                                <span className="text-2xl">
+                                  {item.content_type === "movie" ? "🎬" : "📺"}
+                                </span>
+                              )}
                             </div>
                             <div className="flex-1">
                               <p className="font-medium">{item.title}</p>
                               <p className="text-sm text-muted-foreground">
                                 {item.release_date || item.first_air_date}
                               </p>
+                              {item.overview && (
+                                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                  {item.overview}
+                                </p>
+                              )}
                             </div>
                           </button>
                         ))
@@ -437,10 +430,6 @@ export function CreateRoomBtn() {
                             ))}
                           </SelectContent>
                         </Select>
-                        {/* <p className="text-sm text-muted-foreground">
-                          This helps friends find the content on their preferred
-                          platform
-                        </p> */}
                         <FormMessage />
                       </FormItem>
                     )}
@@ -624,22 +613,6 @@ export function CreateRoomBtn() {
                                 </p>
                               </div>
                             </FormItem>
-                            {/* <FormItem className="flex items-start gap-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem
-                                  value="show_with_warnings"
-                                  className="mt-1"
-                                />
-                              </FormControl>
-                              <div className="grid gap-1">
-                                <FormLabel className="font-medium">
-                                  ⚠️ Show spoiler warnings
-                                </FormLabel>
-                                <p className="text-sm text-muted-foreground">
-                                  Future content is marked but still visible
-                                </p>
-                              </div>
-                            </FormItem> */}
                             <FormItem className="flex items-start gap-3 space-y-0">
                               <FormControl>
                                 <RadioGroupItem
