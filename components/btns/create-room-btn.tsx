@@ -1,8 +1,24 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { Plus, Search, Edit2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useContentSearch } from "@/hooks/use-content-search";
+import {
+  ContentTypeEnum,
+  CreateRoomData,
+  StreamingPlatform,
+} from "@/interfaces/room.interface";
+import { SearchResult } from "@/interfaces/tmdb.interface";
+import { createRoom } from "@/lib/actions/rooms";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Edit2, Plus, Search } from "lucide-react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { toast } from "sonner";
+import { z } from "zod";
+import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -14,16 +30,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "../ui/dialog";
-import { Label } from "../ui/label";
-import { Input } from "../ui/input";
-import { z } from "zod";
-import {
-  ContentTypeEnum,
-  StreamingPlatform,
-} from "@/interfaces/room.interface";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "sonner";
 import {
   Form,
   FormControl,
@@ -32,6 +38,8 @@ import {
   FormLabel,
   FormMessage,
 } from "../ui/form";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
 import { RadioGroup, RadioGroupItem } from "../ui/radio-group";
 import {
   Select,
@@ -40,10 +48,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { Badge } from "../ui/badge";
-import { useState } from "react";
-import { useContentSearch } from "@/hooks/use-content-search";
-import { SearchResult } from "@/interfaces/tmdb.interface";
 
 const STREAMING_PLATFORMS: StreamingPlatform[] = [
   "Netflix",
@@ -75,7 +79,7 @@ const FormSchema = z.object({
   privacy_level: z.enum(["private", "public"], {
     required_error: "You need to select privacy level.",
   }),
-  spoiler_policy: z.enum(["hide_spoilers", "show_with_warnings", "show_all"], {
+  spoiler_policy: z.enum(["hide_spoilers", "show_all"], {
     required_error: "You need to select spoiler policy.",
   }),
   // For series only
@@ -91,6 +95,12 @@ export function CreateRoomBtn() {
   const [selectedContent, setSelectedContent] = useState<SearchResult | null>(
     null
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [isMainDialogOpen, setIsMainDialogOpen] = useState(false);
+
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   const form = useForm<FormData>({
     resolver: zodResolver(FormSchema),
@@ -114,6 +124,20 @@ export function CreateRoomBtn() {
     clearResults,
     clearError,
   } = useContentSearch(contentType || "movie");
+
+  const handleCreateRoomClick = () => {
+    if (!user) {
+      setShowLoginDialog(true);
+      return;
+    }
+    setShowLoginDialog(false);
+    setIsMainDialogOpen(true);
+  };
+
+  const handleLoginRedirect = () => {
+    // setShowLoginDialog(false);
+    router.push("/auth/login");
+  };
 
   const handleContentTypeSelect = () => {
     if (contentType) {
@@ -144,11 +168,53 @@ export function CreateRoomBtn() {
     form.setValue("content_tmdb_id", 0 as any);
   };
 
-  function onSubmit(data: FormData) {
-    console.log("Form submitted:", data);
-    toast.success("Room created successfully!", {
-      description: `"${data.title}" is ready for your friends.`,
-    });
+  async function onSubmit(data: FormData) {
+    console.log({ data, user });
+    if (!user) {
+      setShowLoginDialog(true);
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const roomData: CreateRoomData = {
+        title: data.title,
+        content_tmdb_id: data.content_tmdb_id,
+        content_type: data.content_type,
+        streaming_platform: data.streaming_platform,
+        privacy_level: data.privacy_level,
+        spoiler_policy: data.spoiler_policy,
+        starting_season: data.starting_season,
+        starting_episode: data.starting_episode,
+      };
+
+      const result = await createRoom(roomData);
+
+      if (result.success && result.data) {
+        toast.success("Room created successfully!", {
+          description: `"${result.data.title}" is ready for your friends.`,
+        });
+
+        // Reset form and close dialog
+        resetForm();
+        setIsMainDialogOpen(false);
+
+        // Navigate to the new room
+        router.push(`/rooms/${result.data.room_code}`);
+      } else {
+        toast.error("Failed to create room", {
+          description: result.error || "Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Room creation error:", error);
+      toast.error("Something went wrong", {
+        description: "Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   const resetForm = () => {
@@ -160,331 +226,343 @@ export function CreateRoomBtn() {
     form.reset();
   };
 
+  // Show loading state if auth is loading
+  if (loading) {
+    return (
+      <div>
+        <Button
+          disabled
+          size="default"
+          className="hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4"
+        >
+          <Plus />
+          Loading...
+        </Button>
+        <Button
+          disabled
+          size="icon"
+          className="flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4"
+        >
+          <Plus />
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <Dialog onOpenChange={(open) => !open && resetForm()}>
-      <DialogTrigger asChild>
-        <div>
-          <Button
-            size={"default"}
-            className="hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4"
-          >
-            <Plus />
-            Create room
-          </Button>
+    <>
+      {/* Login Required Dialog */}
+      {/* <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <LogIn className="h-5 w-5" />
+              Sign in required
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You need to sign in to create a room and invite friends to watch
+              movies together.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={() => setShowLoginDialog(false)}>
+              Cancel
+            </Button>
+            <AlertDialogAction onClick={handleLoginRedirect}>
+              <LogIn className="h-4 w-4 mr-2" />
+              Sign in
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog> */}
 
-          <Button
-            size={"icon"}
-            className="flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4"
-          >
-            <Plus />
-          </Button>
-        </div>
-      </DialogTrigger>
+      {/* Main Create Room Dialog */}
+      <Dialog
+        open={isMainDialogOpen}
+        onOpenChange={(open) => {
+          setIsMainDialogOpen(open);
+          if (!open) resetForm();
+        }}
+      >
+        <DialogTrigger asChild>
+          <div>
+            <Button
+              size="default"
+              onClick={handleCreateRoomClick}
+              className="hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4"
+            >
+              <Plus />
+              Create room
+            </Button>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <DialogContent
-            className="sm:max-w-[32.5rem]"
-            fullScreenOnMobile={true}
-          >
-            <DialogHeader>
-              <DialogTitle>🎬 Create Your Movie Room</DialogTitle>
-              <DialogDescription>
-                Share reactions and chat with friends as you watch
-              </DialogDescription>
-            </DialogHeader>
+            <Button
+              size="icon"
+              onClick={handleCreateRoomClick}
+              className="flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4"
+            >
+              <Plus />
+            </Button>
+          </div>
+        </DialogTrigger>
 
-            <div className="grid gap-4 mt-2">
-              {/* Step 1: Content Type Selection */}
-              {step === "type" && (
-                <div className="grid gap-3">
-                  <FormField
-                    control={form.control}
-                    name="content_type"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>
-                          What type of content are you watching?
-                        </FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-3"
-                          >
-                            <FormItem className="flex items-start gap-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem
-                                  value="movie"
-                                  className="mt-1"
-                                />
-                              </FormControl>
-                              <div className="grid gap-1">
-                                <FormLabel className="font-medium">
-                                  Movie
-                                </FormLabel>
-                                <p className="text-xs sm:text-sm text-muted-foreground">
-                                  Share reactions to specific moments and scenes
-                                </p>
-                              </div>
-                            </FormItem>
-                            <FormItem className="flex items-start gap-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem
-                                  value="series"
-                                  className="mt-1"
-                                />
-                              </FormControl>
-                              <div className="grid gap-1">
-                                <FormLabel className="font-medium">
-                                  TV Series
-                                </FormLabel>
-                                <p className=" text-muted-foreground text-xs sm:text-sm">
-                                  Discuss episodes and follow story arcs
-                                  together
-                                </p>
-                              </div>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <DialogContent
+              className="sm:max-w-[32.5rem]"
+              fullScreenOnMobile={true}
+            >
+              <DialogHeader>
+                <DialogTitle>
+                  {showLoginDialog
+                    ? "Sign in required"
+                    : "🎬 Create Your Movie Room"}
+                </DialogTitle>
+                <DialogDescription>
+                  {showLoginDialog
+                    ? "You need to sign in to create a room and invite friends to share movie moments together."
+                    : "Share reactions and chat with friends as you watch"}
+                </DialogDescription>
+              </DialogHeader>
 
-              {/* Step 2: Content Search */}
-              {step === "search" && (
-                <div className="grid gap-6">
-                  {/* Content type indicator */}
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="capitalize">
-                      {contentType === "movie" ? "🎬" : "📺"} {contentType}
-                    </Badge>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleEditContentType}
-                      className="h-6 px-2 text-xs"
-                    >
-                      <Edit2 className="h-2 w-2 mr-1" />
-                      Edit
-                    </Button>
-                  </div>
-
-                  <div className="grid gap-3">
-                    <Label>
-                      Search for{" "}
-                      {contentType === "movie" ? "a movie" : "a TV series"}
-                    </Label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder={`Search ${
-                          contentType === "movie" ? "movies" : "TV series"
-                        }...`}
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 !text-sm"
+              {!showLoginDialog && (
+                <div className="grid gap-4 mt-2">
+                  {/* Step 1: Content Type Selection */}
+                  {step === "type" && (
+                    <div className="grid gap-3">
+                      <FormField
+                        control={form.control}
+                        name="content_type"
+                        render={({ field }) => (
+                          <FormItem className="space-y-3">
+                            <FormLabel>
+                              What type of content are you watching?
+                            </FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-col space-y-3"
+                              >
+                                <FormItem className="flex items-start gap-3 space-y-0">
+                                  <FormControl>
+                                    <RadioGroupItem
+                                      value="movie"
+                                      className="mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="grid gap-1">
+                                    <FormLabel className="font-medium">
+                                      Movie
+                                    </FormLabel>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                      Share reactions to specific moments and
+                                      scenes
+                                    </p>
+                                  </div>
+                                </FormItem>
+                                <FormItem className="flex items-start gap-3 space-y-0">
+                                  <FormControl>
+                                    <RadioGroupItem
+                                      value="series"
+                                      className="mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="grid gap-1">
+                                    <FormLabel className="font-medium">
+                                      TV Series
+                                    </FormLabel>
+                                    <p className=" text-muted-foreground text-xs sm:text-sm">
+                                      Discuss episodes and follow story arcs
+                                      together
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
                       />
                     </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">
-                      💡 We support content from Netflix, Disney+, Hulu, Prime
-                      Video, and more
-                    </p>
-                  </div>
+                  )}
 
-                  {/* Search Results */}
-                  {searchQuery && (
-                    <div className="grid gap-2 max-h-48 overflow-y-auto">
-                      {isSearching ? (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          Searching...
-                        </p>
-                      ) : searchError ? (
-                        <div className="text-center py-4">
-                          <p className="text-sm text-destructive mb-2">
-                            {searchError}
-                          </p>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              clearError();
-                              // Retry search by clearing and setting query again
-                              const currentQuery = searchQuery;
-                              setSearchQuery("");
-                              setTimeout(
-                                () => setSearchQuery(currentQuery),
-                                100
-                              );
-                            }}
-                          >
-                            Try Again
-                          </Button>
+                  {/* Step 2: Content Search */}
+                  {step === "search" && (
+                    <div className="grid gap-6">
+                      {/* Content type indicator */}
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="capitalize">
+                          {contentType === "movie" ? "🎬" : "📺"} {contentType}
+                        </Badge>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleEditContentType}
+                          className="h-6 px-2 text-xs"
+                        >
+                          <Edit2 className="h-2 w-2 mr-1" />
+                          Edit
+                        </Button>
+                      </div>
+
+                      <div className="grid gap-3">
+                        <Label>
+                          Search for{" "}
+                          {contentType === "movie" ? "a movie" : "a TV series"}
+                        </Label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                          <Input
+                            placeholder={`Search ${
+                              contentType === "movie" ? "movies" : "TV series"
+                            }...`}
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="pl-10 !text-sm"
+                          />
                         </div>
-                      ) : searchResults.length > 0 ? (
-                        searchResults.map((item) => (
-                          <button
-                            key={item.tmdb_id}
-                            type="button"
-                            onClick={() => handleContentSelect(item)}
-                            className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent text-left"
-                          >
-                            <div className="w-12 h-16 bg-muted rounded flex items-center justify-center overflow-hidden relative">
-                              {item.poster_path ? (
-                                <Image
-                                  src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
-                                  alt={item.title}
-                                  fill
-                                  className="object-cover"
-                                  sizes="48px"
-                                />
-                              ) : (
-                                <span className="text-2xl">
-                                  {item.content_type === "movie" ? "🎬" : "📺"}
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium">{item.title}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {item.release_date || item.first_air_date}
-                              </p>
-                              {item.overview && (
-                                <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
-                                  {item.overview}
-                                </p>
-                              )}
-                            </div>
-                          </button>
-                        ))
-                      ) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          No results found. Try a different search term.
+                        <p className="text-xs sm:text-sm text-muted-foreground">
+                          💡 We support content from Netflix, Disney+, Hulu,
+                          Prime Video, and more
                         </p>
+                      </div>
+
+                      {/* Search Results */}
+                      {searchQuery && (
+                        <div className="grid gap-2 max-h-48 overflow-y-auto">
+                          {isSearching ? (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              Searching...
+                            </p>
+                          ) : searchError ? (
+                            <div className="text-center py-4">
+                              <p className="text-sm text-destructive mb-2">
+                                {searchError}
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  clearError();
+                                  // Retry search by clearing and setting query again
+                                  const currentQuery = searchQuery;
+                                  setSearchQuery("");
+                                  setTimeout(
+                                    () => setSearchQuery(currentQuery),
+                                    100
+                                  );
+                                }}
+                              >
+                                Try Again
+                              </Button>
+                            </div>
+                          ) : searchResults.length > 0 ? (
+                            searchResults.map((item) => (
+                              <button
+                                key={item.tmdb_id}
+                                type="button"
+                                onClick={() => handleContentSelect(item)}
+                                className="flex items-center gap-3 p-3 rounded-lg border hover:bg-accent text-left"
+                              >
+                                <div className="w-12 h-16 bg-muted rounded flex items-center justify-center overflow-hidden relative">
+                                  {item.poster_path ? (
+                                    <Image
+                                      src={`https://image.tmdb.org/t/p/w92${item.poster_path}`}
+                                      alt={item.title}
+                                      fill
+                                      className="object-cover"
+                                      sizes="48px"
+                                    />
+                                  ) : (
+                                    <span className="text-2xl">
+                                      {item.content_type === "movie"
+                                        ? "🎬"
+                                        : "📺"}
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="flex-1">
+                                  <p className="font-medium">{item.title}</p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {item.release_date || item.first_air_date}
+                                  </p>
+                                  {item.overview && (
+                                    <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
+                                      {item.overview}
+                                    </p>
+                                  )}
+                                </div>
+                              </button>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground text-center py-4">
+                              No results found. Try a different search term.
+                            </p>
+                          )}
+                        </div>
                       )}
                     </div>
                   )}
-                </div>
-              )}
 
-              {/* Step 3: Room Details */}
-              {step === "details" && selectedContent && (
-                <div className="grid gap-6">
-                  {/* Content type and selected content indicators */}
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="capitalize">
-                        {contentType === "movie" ? "🎬" : "📺"} {contentType}
-                      </Badge>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleEditContentType}
-                        className="h-6 px-2 text-xs"
-                      >
-                        <Edit2 className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{selectedContent.title}</Badge>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleChangeContent}
-                        className="h-6 px-2 text-xs"
-                      >
-                        Change
-                      </Button>
-                    </div>
-                  </div>
+                  {/* Step 3: Room Details */}
+                  {step === "details" && selectedContent && (
+                    <div className="grid gap-6">
+                      {/* Content type and selected content indicators */}
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="capitalize">
+                            {contentType === "movie" ? "🎬" : "📺"}{" "}
+                            {contentType}
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleEditContentType}
+                            className="h-6 px-2 text-xs"
+                          >
+                            <Edit2 className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">
+                            {selectedContent.title}
+                          </Badge>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleChangeContent}
+                            className="h-6 px-2 text-xs"
+                          >
+                            Change
+                          </Button>
+                        </div>
+                      </div>
 
-                  {/* Streaming Platform */}
-                  <FormField
-                    control={form.control}
-                    name="streaming_platform"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Where are you watching?</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select streaming platform" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {STREAMING_PLATFORMS.map((platform) => (
-                              <SelectItem key={platform} value={platform}>
-                                {platform}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Room Title */}
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Give your room a name</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="e.g., Breaking Bad Marathon"
-                            className="!text-sm"
-                            {...field}
-                          />
-                        </FormControl>
-                        <p className="text-xs sm:text-sm text-muted-foreground">
-                          Make it personal! Examples: &quot;Weekend Horror
-                          Night&quot; • &quot;Marvel Movie Marathon&quot;
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Starting Episode (Series only) */}
-                  {contentType === "series" && (
-                    <div className="grid grid-cols-2 gap-4">
+                      {/* Streaming Platform */}
                       <FormField
                         control={form.control}
-                        name="starting_season"
+                        name="streaming_platform"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Starting Season</FormLabel>
+                            <FormLabel>Where are you watching?</FormLabel>
                             <Select
-                              onValueChange={(value) =>
-                                field.onChange(Number(value))
-                              }
-                              defaultValue={field.value?.toString()}
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
                             >
                               <FormControl>
                                 <SelectTrigger>
-                                  <SelectValue />
+                                  <SelectValue placeholder="Select streaming platform" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                {[1, 2, 3, 4, 5].map((season) => (
-                                  <SelectItem
-                                    key={season}
-                                    value={season.toString()}
-                                  >
-                                    Season {season}
+                                {STREAMING_PLATFORMS.map((platform) => (
+                                  <SelectItem key={platform} value={platform}>
+                                    {platform}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -493,180 +571,274 @@ export function CreateRoomBtn() {
                           </FormItem>
                         )}
                       />
+
+                      {/* Room Title */}
                       <FormField
                         control={form.control}
-                        name="starting_episode"
+                        name="title"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Starting Episode</FormLabel>
-                            <Select
-                              onValueChange={(value) =>
-                                field.onChange(Number(value))
-                              }
-                              defaultValue={field.value?.toString()}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(
-                                  (episode) => (
-                                    <SelectItem
-                                      key={episode}
-                                      value={episode.toString()}
-                                    >
-                                      Episode {episode}
-                                    </SelectItem>
-                                  )
-                                )}
-                              </SelectContent>
-                            </Select>
+                            <FormLabel>Give your room a name</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g., Breaking Bad Marathon"
+                                className="!text-sm"
+                                {...field}
+                              />
+                            </FormControl>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                              Make it personal! Examples: &quot;Weekend Horror
+                              Night&quot; • &quot;Marvel Movie Marathon&quot;
+                            </p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Starting Episode (Series only) */}
+                      {contentType === "series" && (
+                        <div className="grid grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="starting_season"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Starting Season</FormLabel>
+                                <Select
+                                  onValueChange={(value) =>
+                                    field.onChange(Number(value))
+                                  }
+                                  defaultValue={field.value?.toString()}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {[1, 2, 3, 4, 5].map((season) => (
+                                      <SelectItem
+                                        key={season}
+                                        value={season.toString()}
+                                      >
+                                        Season {season}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          <FormField
+                            control={form.control}
+                            name="starting_episode"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Starting Episode</FormLabel>
+                                <Select
+                                  onValueChange={(value) =>
+                                    field.onChange(Number(value))
+                                  }
+                                  defaultValue={field.value?.toString()}
+                                >
+                                  <FormControl>
+                                    <SelectTrigger>
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent>
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(
+                                      (episode) => (
+                                        <SelectItem
+                                          key={episode}
+                                          value={episode.toString()}
+                                        >
+                                          Episode {episode}
+                                        </SelectItem>
+                                      )
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      )}
+
+                      {/* Privacy Level */}
+                      <FormField
+                        control={form.control}
+                        name="privacy_level"
+                        render={({ field }) => (
+                          <FormItem className="space-y-3">
+                            <FormLabel>Who can join your room?</FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-col space-y-3"
+                              >
+                                <FormItem className="flex items-start gap-3 space-y-0">
+                                  <FormControl>
+                                    <RadioGroupItem
+                                      value="private"
+                                      className="mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="grid gap-1">
+                                    <FormLabel className="font-medium">
+                                      🔒 Private Room (Recommended)
+                                    </FormLabel>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                      Only people you invite can join and
+                                      participate
+                                    </p>
+                                  </div>
+                                </FormItem>
+                                <FormItem className="flex items-start gap-3 space-y-0">
+                                  <FormControl>
+                                    <RadioGroupItem
+                                      value="public"
+                                      className="mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="grid gap-1">
+                                    <FormLabel className="font-medium">
+                                      🌐 Public Room
+                                    </FormLabel>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                      Anyone with the link can discover and join
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              </RadioGroup>
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Spoiler Policy */}
+                      <FormField
+                        control={form.control}
+                        name="spoiler_policy"
+                        render={({ field }) => (
+                          <FormItem className="space-y-3">
+                            <FormLabel>
+                              How should we handle spoilers?
+                            </FormLabel>
+                            <FormControl>
+                              <RadioGroup
+                                onValueChange={field.onChange}
+                                defaultValue={field.value}
+                                className="flex flex-col space-y-3"
+                              >
+                                <FormItem className="flex items-start gap-3 space-y-0">
+                                  <FormControl>
+                                    <RadioGroupItem
+                                      value="hide_spoilers"
+                                      className="mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="grid gap-1">
+                                    <FormLabel className="font-medium">
+                                      🚨 Hide spoilers (Recommended)
+                                    </FormLabel>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                      Messages about future scenes are
+                                      automatically hidden
+                                    </p>
+                                  </div>
+                                </FormItem>
+                                <FormItem className="flex items-start gap-3 space-y-0">
+                                  <FormControl>
+                                    <RadioGroupItem
+                                      value="show_all"
+                                      className="mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="grid gap-1">
+                                    <FormLabel className="font-medium">
+                                      👁️ Show everything
+                                    </FormLabel>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">
+                                      No spoiler protection - all messages
+                                      visible
+                                    </p>
+                                  </div>
+                                </FormItem>
+                              </RadioGroup>
+                            </FormControl>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
                     </div>
                   )}
-
-                  {/* Privacy Level */}
-                  <FormField
-                    control={form.control}
-                    name="privacy_level"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>Who can join your room?</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-3"
-                          >
-                            <FormItem className="flex items-start gap-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem
-                                  value="private"
-                                  className="mt-1"
-                                />
-                              </FormControl>
-                              <div className="grid gap-1">
-                                <FormLabel className="font-medium">
-                                  🔒 Private Room (Recommended)
-                                </FormLabel>
-                                <p className="text-xs sm:text-sm text-muted-foreground">
-                                  Only people you invite can join and
-                                  participate
-                                </p>
-                              </div>
-                            </FormItem>
-                            <FormItem className="flex items-start gap-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem
-                                  value="public"
-                                  className="mt-1"
-                                />
-                              </FormControl>
-                              <div className="grid gap-1">
-                                <FormLabel className="font-medium">
-                                  🌐 Public Room
-                                </FormLabel>
-                                <p className="text-xs sm:text-sm text-muted-foreground">
-                                  Anyone with the link can discover and join
-                                </p>
-                              </div>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  {/* Spoiler Policy */}
-                  <FormField
-                    control={form.control}
-                    name="spoiler_policy"
-                    render={({ field }) => (
-                      <FormItem className="space-y-3">
-                        <FormLabel>How should we handle spoilers?</FormLabel>
-                        <FormControl>
-                          <RadioGroup
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            className="flex flex-col space-y-3"
-                          >
-                            <FormItem className="flex items-start gap-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem
-                                  value="hide_spoilers"
-                                  className="mt-1"
-                                />
-                              </FormControl>
-                              <div className="grid gap-1">
-                                <FormLabel className="font-medium">
-                                  🚨 Hide spoilers (Recommended)
-                                </FormLabel>
-                                <p className="text-xs sm:text-sm text-muted-foreground">
-                                  Messages about future scenes are automatically
-                                  hidden
-                                </p>
-                              </div>
-                            </FormItem>
-                            <FormItem className="flex items-start gap-3 space-y-0">
-                              <FormControl>
-                                <RadioGroupItem
-                                  value="show_all"
-                                  className="mt-1"
-                                />
-                              </FormControl>
-                              <div className="grid gap-1">
-                                <FormLabel className="font-medium">
-                                  👁️ Show everything
-                                </FormLabel>
-                                <p className="text-xs sm:text-sm text-muted-foreground">
-                                  No spoiler protection - all messages visible
-                                </p>
-                              </div>
-                            </FormItem>
-                          </RadioGroup>
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
                 </div>
               )}
-            </div>
 
-            <DialogFooter className="mt-6">
-              <DialogClose asChild>
-                <Button variant="secondary">Cancel</Button>
-              </DialogClose>
+              <DialogFooter className={showLoginDialog ? "mt-4" : "mt-6"}>
+                <DialogClose asChild>
+                  <Button variant="secondary" disabled={isSubmitting}>
+                    Cancel
+                  </Button>
+                </DialogClose>
 
-              {step === "type" && (
-                <Button
-                  type="button"
-                  onClick={handleContentTypeSelect}
-                  disabled={!contentType}
-                >
-                  Continue
-                </Button>
-              )}
+                {showLoginDialog && (
+                  <Button type="button" onClick={handleLoginRedirect}>
+                    Log in
+                  </Button>
+                )}
 
-              {step === "search" && !selectedContent && (
-                <Button type="button" disabled>
-                  Select Content First
-                </Button>
-              )}
+                {!showLoginDialog && (
+                  <>
+                    {step === "type" && (
+                      <Button
+                        type="button"
+                        onClick={handleContentTypeSelect}
+                        disabled={!contentType || isSubmitting}
+                      >
+                        Continue
+                      </Button>
+                    )}
 
-              {step === "details" && (
-                <Button type="submit">Create Room & Invite Friends</Button>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </form>
-      </Form>
-    </Dialog>
+                    {step === "search" && !selectedContent && (
+                      <Button type="button" disabled>
+                        Select Content First
+                      </Button>
+                    )}
+
+                    {step === "details" && (
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        onClick={() => {
+                          console.log({
+                            values: form.getValues(),
+                            errr: form.formState,
+                          });
+                        }}
+                      >
+                        {isSubmitting ? (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            Creating...
+                          </div>
+                        ) : (
+                          "Create Room & Invite Friends"
+                        )}
+                      </Button>
+                    )}
+                  </>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </form>
+        </Form>
+      </Dialog>
+    </>
   );
 }

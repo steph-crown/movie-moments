@@ -8,8 +8,8 @@ export interface RoomWithoutParticipants {
   content_tmdb_id: number;
   content: ICachedContent;
   streaming_platform: StreamingPlatform; // Netflix, Disney+, Hulu, etc.
-  privacy_level: "public" | "private";
-  spoiler_policy: "hide_spoilers" | "show_all";
+  privacy_level: PrivacyLevel;
+  spoiler_policy: SpoilerPolicy;
   // thumbnail_url: string;
 
   // Content information
@@ -62,35 +62,29 @@ export interface ParticipantPreview {
   username: string;
   display_name: string;
   avatar_url?: string;
-  status: "active" | "pending";
+  status: ParticipantStatus;
   last_seen: string;
   current_season?: number;
   current_episode?: number;
   current_timestamp?: number;
 }
 
-// Room creation payload
-export interface CreateRoomPayload {
+export interface CreateRoomData {
   title: string;
-  content_type: "movie" | "series";
+  content_tmdb_id: number;
+  content_type: ContentType;
   streaming_platform: string;
-  privacy_level: "public" | "private";
-  spoiler_policy?: "hide_spoilers" | "show_all";
-
-  // For series
-  season_number?: number;
-  episode_number?: number;
-  total_seasons?: number;
-
-  // Initial position
-  initial_timestamp?: number;
+  privacy_level: PrivacyLevel;
+  spoiler_policy: SpoilerPolicy;
+  starting_season?: number;
+  starting_episode?: number;
 }
 
 // Room update payload
 export interface UpdateRoomPayload {
   title?: string;
-  privacy_level?: "public" | "private";
-  spoiler_policy?: "hide_spoilers" | "show_all";
+  privacy_level?: PrivacyLevel;
+  spoiler_policy?: SpoilerPolicy;
   is_permanent?: boolean; // Premium feature
 }
 
@@ -196,3 +190,8 @@ export enum StreamingPlatformEnum {
   PEACOCK = "Peacock",
   OTHER = "Other",
 }
+
+export type PrivacyLevel = "public" | "private";
+export type SpoilerPolicy = "hide_spoilers" | "show_all";
+export type ContentType = "movie" | "series";
+export type ParticipantStatus = "active" | "pending";
