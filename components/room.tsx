@@ -7,8 +7,10 @@ import { Badge } from "./ui/badge";
 
 import { useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
+import { useRouter } from "next/navigation";
 
 export function Room({ room }: { room: IRoom }) {
+  const router = useRouter();
   const [imageLoaded, setImageLoaded] = useState(false);
   const hasImage = room.content?.backdrop_path || room.content?.poster_path;
 
@@ -54,7 +56,12 @@ export function Room({ room }: { room: IRoom }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="rounded-xl cursor-pointer">
+        <div
+          className="rounded-xl cursor-pointer"
+          onClick={() => {
+            router.push(`/rooms/${room.room_code}`);
+          }}
+        >
           <div className="w-full h-[12.5rem] relative">
             {hasImage ? (
               <>
