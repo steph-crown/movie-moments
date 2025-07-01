@@ -1,12 +1,12 @@
+import { CreateRoomBtn } from "@/components/btns/create-room-btn";
 import { Logo } from "@/components/logo";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { MenuIcon, Plus, SearchIcon } from "lucide-react";
+import { MenuIcon, SearchIcon } from "lucide-react";
 import Link from "next/link";
 import { ReactNode } from "react";
 
@@ -21,7 +21,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <div className="hidden lg:flex gap-2">
               <Link
                 href={"/rooms"}
-                className="text-sm font-medium bg-secondary px-4 py-2 rounded-md"
+                className="text-sm font-semibold bg-secondary px-4 py-2 rounded-md"
               >
                 Rooms
               </Link>
@@ -45,31 +45,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               />
             </div>
 
-            <Button
-              size={"default"}
-              className="hidden min-[390px]:flex text-xs rounded-sm font-medium !px-3 sm:!px-4"
-            >
-              <Plus />
-              Create room
-            </Button>
-
-            <Button
-              size={"icon"}
-              className="flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4"
-            >
-              <Plus />
-            </Button>
+            <CreateRoomBtn />
 
             <Popover>
               <PopoverTrigger className="flex lg:hidden">
-                <Button
-                  size={"icon"}
-                  variant={"outline"}
-                  className="flex lg:hidden"
-                >
-                  <MenuIcon />
-                </Button>
-                {/* <MenuIcon /> */}
+                <div className="flex lg:hidden border border-solid border-border rounded-sm p-1 items-center justify-center h-8 w-8">
+                  <MenuIcon className="h-5 w-5 text-muted-foreground" />
+                </div>
               </PopoverTrigger>
 
               <PopoverContent>

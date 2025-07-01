@@ -143,8 +143,10 @@ export function Room({ room }: { room: IRoom }) {
       </TooltipTrigger>
 
       <TooltipContent>
-        <div className="text-sm">
-          <p>Created by @{room.creator.username}</p>
+        <div className="p-2">
+          <p className="text-xs font-semibold mb-1">
+            Created by @{room.creator.username}
+          </p>
           <p className="text-xs opacity-75">
             Last activity: {formatLastActivity(room.last_activity)}
           </p>
