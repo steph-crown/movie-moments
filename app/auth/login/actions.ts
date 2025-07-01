@@ -84,8 +84,8 @@ export async function login(
     console.error("Failed to update last_active:", profileError);
   }
 
-  revalidatePath("/dashboard", "layout");
-  redirect("/dashboard");
+  revalidatePath("/rooms", "layout");
+  redirect("/rooms");
 }
 
 export async function logout() {

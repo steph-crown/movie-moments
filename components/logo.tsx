@@ -12,7 +12,7 @@ export function Logo({ className }: { className?: string }) {
         <GalleryVerticalEnd className="size-6 text-primary" />
       </div>
 
-      <span className=" font-medium">MovieMoments</span>
+      <span className=" font-semibold text-sm text-primary">MovieMoments</span>
     </Link>
   );
 }

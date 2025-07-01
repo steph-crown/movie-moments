@@ -86,6 +86,6 @@ export async function signup(prevState: IFormState, formData: FormData) {
     };
   }
 
-  revalidatePath("/dashboard", "layout");
-  redirect("/dashboard");
+  revalidatePath("/rooms", "layout");
+  redirect("/rooms");
 }
