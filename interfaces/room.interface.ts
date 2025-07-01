@@ -178,3 +178,21 @@ export type StreamingPlatform =
   | "Paramount+"
   | "Peacock"
   | "Other";
+
+export enum ContentTypeEnum {
+  Movie = "movie",
+  Series = "series",
+}
+
+export enum StreamingPlatformEnum {
+  NETFLIX = "Netflix",
+  DISNEY_PLUS = "Disney+",
+  HULU = "Hulu",
+  PRIME_VIDEO = "Prime Video",
+  YOUTUBE = "YouTube",
+  APPLE_TV = "Apple TV+",
+  HBO_MAX = "HBO Max",
+  PARAMOUNT_PLUS = "Paramount+",
+  PEACOCK = "Peacock",
+  OTHER = "Other",
+}
