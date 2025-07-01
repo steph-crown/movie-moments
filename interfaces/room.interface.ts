@@ -1,13 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Base room interface
 export interface RoomWithoutParticipants {
   id: string;
   room_code: string; // ABC123 format for sharing
   title: string;
-  content_type: "movie" | "series";
+  // content_type: "movie" | "series";
+  content_tmdb_id: number;
+  content: ICachedContent;
   streaming_platform: StreamingPlatform; // Netflix, Disney+, Hulu, etc.
   privacy_level: "public" | "private";
   spoiler_policy: "hide_spoilers" | "show_all";
-  thumbnail_url: string;
+  // thumbnail_url: string;
 
   // Content information
   season_number?: number; // null for movies
@@ -138,10 +141,30 @@ export interface ActivityItem {
   timestamp: string;
 }
 
+export interface ICachedContent {
+  id: string;
+  tmdb_id: number;
+  content_type: RoomContentType;
+  title: string; // Could be movie title or series name
+  release_date?: string;
+  overview?: string;
+  poster_path: string;
+  backdrop_path: string;
+  runtime?: number; // Only for movies
+  number_of_seasons?: number; // Only for series
+  number_of_episodes?: number; // Only for series
+  genres: any[];
+  first_air_date?: string;
+  platforms?: string[];
+  // seasons?: any[]; // Only for series
+  cached_at: string;
+  last_accessed: string;
+}
+
 // Utility types for UI components
 export type RoomCardVariant = "created" | "joined" | "invitation";
 export type RoomPrivacy = IRoom["privacy_level"];
-export type RoomContentType = IRoom["content_type"];
+export type RoomContentType = "movie" | "series";
 export type RoomStatus = IRoom["status"];
 
 export type StreamingPlatform =

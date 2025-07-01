@@ -11,34 +11,38 @@ import { ChevronDown, LayoutGrid, LayoutList } from "lucide-react";
 export default function Rooms() {
   return (
     <div>
-      <div className="flex justify-end gap-6">
-        <Popover>
-          <PopoverTrigger className="text-xs font-medium flex gap-0.5 items-center">
-            All rooms
-            <ChevronDown className="h-4" />
-          </PopoverTrigger>
+      <div className="flex justify-between items-center">
+        <h1 className="font-semibold">My Rooms</h1>
 
-          <PopoverContent>Place content for the popover here.</PopoverContent>
-        </Popover>
+        <div className="flex justify-end gap-6">
+          <Popover>
+            <PopoverTrigger className="text-xs font-medium flex gap-0.5 items-center">
+              All rooms
+              <ChevronDown className="h-4" />
+            </PopoverTrigger>
 
-        <Popover>
-          <PopoverTrigger className="text-xs font-medium flex gap-0.5 items-center">
-            Last created
-            <ChevronDown className="h-4" />
-          </PopoverTrigger>
+            <PopoverContent>Place content for the popover here.</PopoverContent>
+          </Popover>
 
-          <PopoverContent>Place content for the popover here.</PopoverContent>
-        </Popover>
+          <Popover>
+            <PopoverTrigger className="text-xs font-medium flex gap-0.5 items-center">
+              Last created
+              <ChevronDown className="h-4" />
+            </PopoverTrigger>
 
-        <ToggleGroup variant="default" size={"sm"} type="single" value="grid">
-          <ToggleGroupItem value="grid" aria-label="Toggle grid">
-            <LayoutGrid />
-          </ToggleGroupItem>
+            <PopoverContent>Place content for the popover here.</PopoverContent>
+          </Popover>
 
-          <ToggleGroupItem value="list" aria-label="Toggle list">
-            <LayoutList />
-          </ToggleGroupItem>
-        </ToggleGroup>
+          <ToggleGroup variant="default" size={"sm"} type="single" value="grid">
+            <ToggleGroupItem value="grid" aria-label="Toggle grid">
+              <LayoutGrid />
+            </ToggleGroupItem>
+
+            <ToggleGroupItem value="list" aria-label="Toggle list">
+              <LayoutList />
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
       </div>
 
       {/* <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"> */}

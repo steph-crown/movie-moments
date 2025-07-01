@@ -5,16 +5,11 @@ export const sampleRooms: IRoom[] = [
   {
     id: "1",
     room_code: "BB2024",
-    title: "Breaking Bad Marathon",
-    content_type: "series",
+    title: "Breaking Bad Marathon", // Custom room title
+    content_tmdb_id: 1396,
     streaming_platform: "Netflix",
     privacy_level: "private",
     spoiler_policy: "hide_spoilers",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
-    season_number: 1,
-    episode_number: 4,
-    total_seasons: 5,
     creator_id: "user123",
     status: "active",
     is_permanent: false,
@@ -22,7 +17,26 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-20T14:30:00Z",
     member_count: 8,
     unread_count: 3,
-    current_episode: "S1E4",
+    content: {
+      id: "1",
+      tmdb_id: 1396,
+      content_type: "series",
+      title: "Breaking Bad",
+      overview:
+        "A high school chemistry teacher diagnosed with inoperable lung cancer turns to manufacturing and selling methamphetamine in order to secure his family's future.",
+      poster_path: "/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      number_of_seasons: 5,
+      number_of_episodes: 62,
+      genres: [
+        { id: 18, name: "Drama" },
+        { id: 80, name: "Crime" },
+      ],
+      first_air_date: "2008-01-20",
+      cached_at: "2024-01-15T09:00:00Z",
+      last_accessed: "2024-01-20T14:30:00Z",
+    },
     creator: {
       id: "user123",
       username: "sarah_movie_fan",
@@ -32,13 +46,11 @@ export const sampleRooms: IRoom[] = [
   {
     id: "2",
     room_code: "MVL024",
-    title: "Marvel Movie Marathon",
-    content_type: "movie",
+    title: "Marvel Movie Marathon", // Custom room title
+    content_tmdb_id: 299534,
     streaming_platform: "Disney+",
     privacy_level: "public",
     spoiler_policy: "hide_spoilers",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
     creator_id: "user123",
     status: "active",
     is_permanent: false,
@@ -46,8 +58,26 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-20T13:15:00Z",
     member_count: 15,
     unread_count: 0,
-    current_movie: "Avengers: Endgame",
-    current_timestamp: 4823,
+    content: {
+      id: "2",
+      tmdb_id: 299534,
+      content_type: "movie",
+      title: "Avengers: Endgame",
+      overview:
+        "After the devastating events of Avengers: Infinity War, the universe is in ruins due to the efforts of the Mad Titan, Thanos.",
+      poster_path: "/or06FN3Dka5tukK1e9sl16pB3iy.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
+      runtime: 181,
+      genres: [
+        { id: 12, name: "Adventure" },
+        { id: 878, name: "Science Fiction" },
+        { id: 28, name: "Action" },
+      ],
+      release_date: "2019-04-24",
+      cached_at: "2024-01-18T15:00:00Z",
+      last_accessed: "2024-01-20T13:15:00Z",
+    },
     creator: {
       id: "user123",
       username: "sarah_movie_fan",
@@ -57,13 +87,11 @@ export const sampleRooms: IRoom[] = [
   {
     id: "3",
     room_code: "HRR999",
-    title: "Weekend Horror Night",
-    content_type: "movie",
+    title: "Weekend Horror Night", // Custom room title
+    content_tmdb_id: 138843,
     streaming_platform: "Netflix",
     privacy_level: "private",
     spoiler_policy: "hide_spoilers",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/wnnu8htEZBLtwrke9QYfLKx6zjp.jpg",
     creator_id: "user123",
     status: "active",
     is_permanent: true,
@@ -71,8 +99,25 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-20T11:45:00Z",
     member_count: 6,
     unread_count: 1,
-    current_movie: "The Conjuring",
-    current_timestamp: 2145,
+    content: {
+      id: "3",
+      tmdb_id: 138843,
+      content_type: "movie",
+      title: "The Conjuring",
+      overview:
+        "Paranormal investigators Ed and Lorraine Warren work to help a family terrorized by a dark presence in their farmhouse.",
+      poster_path: "/wVYREutTvI2tmxr6ujrHT704wGF.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/wnnu8htEZBLtwrke9QYfLKx6zjp.jpg",
+      runtime: 112,
+      genres: [
+        { id: 27, name: "Horror" },
+        { id: 53, name: "Thriller" },
+      ],
+      release_date: "2013-07-18",
+      cached_at: "2024-01-10T18:00:00Z",
+      last_accessed: "2024-01-20T11:45:00Z",
+    },
     creator: {
       id: "user123",
       username: "sarah_movie_fan",
@@ -84,13 +129,11 @@ export const sampleRooms: IRoom[] = [
   {
     id: "4",
     room_code: "NOL456",
-    title: "Nolan Films Deep Dive",
-    content_type: "movie",
+    title: "Nolan Films Deep Dive", // Custom room title
+    content_tmdb_id: 27205,
     streaming_platform: "HBO Max",
     privacy_level: "public",
     spoiler_policy: "hide_spoilers",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
     creator_id: "user456",
     status: "active",
     is_permanent: false,
@@ -98,8 +141,26 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-20T12:20:00Z",
     member_count: 23,
     unread_count: 5,
-    current_movie: "Inception",
-    current_timestamp: 3456,
+    content: {
+      id: "4",
+      tmdb_id: 27205,
+      content_type: "movie",
+      title: "Inception",
+      overview:
+        "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life.",
+      poster_path: "/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      runtime: 148,
+      genres: [
+        { id: 28, name: "Action" },
+        { id: 878, name: "Science Fiction" },
+        { id: 53, name: "Thriller" },
+      ],
+      release_date: "2010-07-15",
+      cached_at: "2024-01-12T13:00:00Z",
+      last_accessed: "2024-01-20T12:20:00Z",
+    },
     creator: {
       id: "user456",
       username: "mike_cinema",
@@ -108,17 +169,12 @@ export const sampleRooms: IRoom[] = [
   },
   {
     id: "5",
+    title: "Group Watch Party",
     room_code: "ST4789",
-    title: "Stranger Things S4 Reactions",
-    content_type: "series",
+    content_tmdb_id: 66732,
     streaming_platform: "Netflix",
     privacy_level: "private",
     spoiler_policy: "hide_spoilers",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
-    season_number: 4,
-    episode_number: 7,
-    total_seasons: 4,
     creator_id: "user789",
     status: "active",
     is_permanent: false,
@@ -126,7 +182,27 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-20T09:30:00Z",
     member_count: 12,
     unread_count: 0,
-    current_episode: "S4E7",
+    content: {
+      id: "5",
+      tmdb_id: 66732,
+      content_type: "series",
+      title: "Stranger Things",
+      overview:
+        "When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces, and one strange little girl.",
+      poster_path: "/49WJfeN0moxb9IPfGn8AIqMGskD.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      number_of_seasons: 4,
+      number_of_episodes: 42,
+      genres: [
+        { id: 18, name: "Drama" },
+        { id: 10765, name: "Sci-Fi & Fantasy" },
+        { id: 9648, name: "Mystery" },
+      ],
+      first_air_date: "2016-07-15",
+      cached_at: "2024-01-08T19:00:00Z",
+      last_accessed: "2024-01-20T09:30:00Z",
+    },
     creator: {
       id: "user789",
       username: "alex_binge",
@@ -136,16 +212,10 @@ export const sampleRooms: IRoom[] = [
   {
     id: "6",
     room_code: "GOT321",
-    title: "House of the Dragon Weekly",
-    content_type: "series",
+    content_tmdb_id: 94997,
     streaming_platform: "HBO Max",
     privacy_level: "public",
     spoiler_policy: "show_all",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
-    season_number: 1,
-    episode_number: 8,
-    total_seasons: 1,
     creator_id: "user101",
     status: "active",
     is_permanent: false,
@@ -153,7 +223,28 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-19T22:45:00Z",
     member_count: 34,
     unread_count: 12,
-    current_episode: "S1E8",
+    title: "",
+    content: {
+      id: "5",
+      tmdb_id: 94997,
+      content_type: "series",
+      title: "House of the Dragon",
+      overview:
+        "The Targaryen dynasty is at the absolute apex of its power, with more than 10 dragons under their yoke. Most empires crumble from such heights.",
+      poster_path: "/z2yahl2uefxDCl0nogcRBstwruJ.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
+      number_of_seasons: 2,
+      number_of_episodes: 18,
+      genres: [
+        { id: 10765, name: "Sci-Fi & Fantasy" },
+        { id: 18, name: "Drama" },
+        { id: 10759, name: "Action & Adventure" },
+      ],
+      first_air_date: "2022-08-21",
+      cached_at: "2024-01-05T20:00:00Z",
+      last_accessed: "2024-01-19T22:45:00Z",
+    },
     creator: {
       id: "user101",
       username: "dragon_fan",
@@ -163,16 +254,10 @@ export const sampleRooms: IRoom[] = [
   {
     id: "7",
     room_code: "BEAR22",
-    title: "The Bear Season 2",
-    content_type: "series",
+    content_tmdb_id: 136315,
     streaming_platform: "Hulu",
     privacy_level: "private",
     spoiler_policy: "hide_spoilers",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/gklrevVndG98GHGDwfm8y8kxESo.jpg",
-    season_number: 2,
-    episode_number: 5,
-    total_seasons: 2,
     creator_id: "user202",
     status: "active",
     is_permanent: false,
@@ -180,7 +265,27 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-20T08:15:00Z",
     member_count: 7,
     unread_count: 2,
-    current_episode: "S2E5",
+    title: "Quick Weekend watch",
+    content: {
+      id: "6",
+      tmdb_id: 136315,
+      content_type: "series",
+      title: "The Bear",
+      overview:
+        "A young chef from the fine dining world comes home to Chicago to run his family sandwich shop.",
+      poster_path: "/sHFlbKS3WLqMnp9t2ghADIJFnuQ.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/gklrevVndG98GHGDwfm8y8kxESo.jpg",
+      number_of_seasons: 3,
+      number_of_episodes: 28,
+      genres: [
+        { id: 35, name: "Comedy" },
+        { id: 18, name: "Drama" },
+      ],
+      first_air_date: "2022-06-23",
+      cached_at: "2024-01-14T17:00:00Z",
+      last_accessed: "2024-01-20T08:15:00Z",
+    },
     creator: {
       id: "user202",
       username: "chef_lover",
@@ -192,13 +297,10 @@ export const sampleRooms: IRoom[] = [
   {
     id: "8",
     room_code: "TOP789",
-    title: "Top Gun: Maverick Rewatch",
-    content_type: "movie",
+    content_tmdb_id: 361743,
     streaming_platform: "Prime Video",
     privacy_level: "private",
     spoiler_policy: "hide_spoilers",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
     creator_id: "user303",
     status: "active",
     is_permanent: false,
@@ -206,11 +308,29 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-20T07:30:00Z",
     member_count: 9,
     unread_count: 0,
-    current_movie: "Top Gun: Maverick",
-    current_timestamp: 1456,
     invited_by: "jenny_pilot",
     invited_at: "2024-01-20T12:00:00Z",
     invitation_status: "pending",
+    title: "",
+    content: {
+      id: "7",
+      tmdb_id: 361743,
+      content_type: "movie",
+      title: "Top Gun: Maverick",
+      overview:
+        "After more than thirty years of service as one of the Navy's top aviators, Pete 'Maverick' Mitchell is where he belongs, pushing the envelope as a courageous test pilot.",
+      poster_path: "/62HCnUTziyWcpDaBO2i1DX17ljH.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      runtime: 130,
+      genres: [
+        { id: 28, name: "Action" },
+        { id: 18, name: "Drama" },
+      ],
+      release_date: "2022-05-24",
+      cached_at: "2024-01-19T14:00:00Z",
+      last_accessed: "2024-01-20T07:30:00Z",
+    },
     creator: {
       id: "user303",
       username: "jenny_pilot",
@@ -220,13 +340,10 @@ export const sampleRooms: IRoom[] = [
   {
     id: "9",
     room_code: "ANI456",
-    title: "Studio Ghibli Movie Night",
-    content_type: "movie",
+    content_tmdb_id: 129,
     streaming_platform: "HBO Max",
     privacy_level: "private",
     spoiler_policy: "hide_spoilers",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
     creator_id: "user404",
     status: "active",
     is_permanent: false,
@@ -234,11 +351,30 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-19T21:15:00Z",
     member_count: 5,
     unread_count: 0,
-    current_movie: "Spirited Away",
-    current_timestamp: 890,
     invited_by: "anime_lover",
     invited_at: "2024-01-19T18:30:00Z",
     invitation_status: "pending",
+    title: "",
+    content: {
+      id: "9",
+      tmdb_id: 129,
+      content_type: "movie",
+      title: "Spirited Away",
+      overview:
+        "A ten-year-old girl who, while moving to a new neighborhood, enters the world of Kami (spirits of Japanese Shinto folklore).",
+      poster_path: "/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
+      runtime: 125,
+      genres: [
+        { id: 16, name: "Animation" },
+        { id: 10751, name: "Family" },
+        { id: 14, name: "Fantasy" },
+      ],
+      release_date: "2001-07-20",
+      cached_at: "2024-01-17T19:00:00Z",
+      last_accessed: "2024-01-19T21:15:00Z",
+    },
     creator: {
       id: "user404",
       username: "anime_lover",
@@ -250,13 +386,10 @@ export const sampleRooms: IRoom[] = [
   {
     id: "10",
     room_code: "DUNE24",
-    title: "Dune Part Two Hype",
-    content_type: "movie",
+    content_tmdb_id: 693134,
     streaming_platform: "Prime Video",
     privacy_level: "public",
     spoiler_policy: "show_all",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
     creator_id: "user505",
     status: "active",
     is_permanent: false,
@@ -264,8 +397,26 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-20T10:45:00Z",
     member_count: 18,
     unread_count: 7,
-    current_movie: "Dune: Part Two",
-    current_timestamp: 2789,
+    title: "",
+    content: {
+      id: "2",
+      tmdb_id: 693134,
+      content_type: "movie",
+      title: "Dune: Part Two",
+      overview:
+        "Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family.",
+      poster_path: "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
+      runtime: 166,
+      genres: [
+        { id: 878, name: "Science Fiction" },
+        { id: 12, name: "Adventure" },
+      ],
+      release_date: "2024-02-27",
+      cached_at: "2024-01-16T12:00:00Z",
+      last_accessed: "2024-01-20T10:45:00Z",
+    },
     creator: {
       id: "user505",
       username: "sci_fi_fanatic",
@@ -275,16 +426,10 @@ export const sampleRooms: IRoom[] = [
   {
     id: "11",
     room_code: "OFFICE",
-    title: "The Office Comfort Rewatch",
-    content_type: "series",
+    content_tmdb_id: 2316,
     streaming_platform: "Peacock",
     privacy_level: "private",
     spoiler_policy: "show_all",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/gklrevVndG98GHGDwfm8y8kxESo.jpg",
-    season_number: 3,
-    episode_number: 12,
-    total_seasons: 9,
     creator_id: "user606",
     status: "active",
     is_permanent: true,
@@ -292,7 +437,24 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-20T16:20:00Z",
     member_count: 4,
     unread_count: 0,
-    current_episode: "S3E12",
+    title: "",
+    content: {
+      id: "2",
+      tmdb_id: 2316,
+      content_type: "series",
+      title: "The Office",
+      overview:
+        "The everyday lives of office employees in the Scranton, Pennsylvania branch of the fictional Dunder Mifflin Paper Company.",
+      poster_path: "/7DJKHzAi83BmQrWLrYYOqcoKfhR.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/gklrevVndG98GHGDwfm8y8kxESo.jpg",
+      number_of_seasons: 9,
+      number_of_episodes: 201,
+      genres: [{ id: 35, name: "Comedy" }],
+      first_air_date: "2005-03-24",
+      cached_at: "2024-01-01T11:00:00Z",
+      last_accessed: "2024-01-20T16:20:00Z",
+    },
     creator: {
       id: "user606",
       username: "office_addict",
@@ -302,13 +464,10 @@ export const sampleRooms: IRoom[] = [
   {
     id: "12",
     room_code: "OPPEN",
-    title: "Oppenheimer Discussion",
-    content_type: "movie",
+    content_tmdb_id: 872585,
     streaming_platform: "Prime Video",
     privacy_level: "public",
     spoiler_policy: "hide_spoilers",
-    thumbnail_url:
-      "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
     creator_id: "user707",
     status: "active",
     is_permanent: false,
@@ -316,8 +475,26 @@ export const sampleRooms: IRoom[] = [
     last_activity: "2024-01-19T20:30:00Z",
     member_count: 26,
     unread_count: 4,
-    current_movie: "Oppenheimer",
-    current_timestamp: 5234,
+    title: "",
+    content: {
+      id: "2",
+      tmdb_id: 872585,
+      content_type: "movie",
+      title: "Oppenheimer",
+      overview:
+        "The story of J. Robert Oppenheimer's role in the development of the atomic bomb during World War II.",
+      poster_path: "/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
+      backdrop_path:
+        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      runtime: 180,
+      genres: [
+        { id: 18, name: "Drama" },
+        { id: 36, name: "History" },
+      ],
+      release_date: "2023-07-19",
+      cached_at: "2024-01-13T16:00:00Z",
+      last_accessed: "2024-01-19T20:30:00Z",
+    },
     creator: {
       id: "user707",
       username: "history_buff",
