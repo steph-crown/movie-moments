@@ -4,7 +4,7 @@ export interface RoomWithoutParticipants {
   room_code: string; // ABC123 format for sharing
   title: string;
   content_type: "movie" | "series";
-  streaming_platform: string; // Netflix, Disney+, Hulu, etc.
+  streaming_platform: StreamingPlatform; // Netflix, Disney+, Hulu, etc.
   privacy_level: "public" | "private";
   spoiler_policy: "hide_spoilers" | "show_all";
   thumbnail_url: string;
@@ -143,3 +143,15 @@ export type RoomCardVariant = "created" | "joined" | "invitation";
 export type RoomPrivacy = IRoom["privacy_level"];
 export type RoomContentType = IRoom["content_type"];
 export type RoomStatus = IRoom["status"];
+
+export type StreamingPlatform =
+  | "Netflix"
+  | "Disney+"
+  | "Hulu"
+  | "Prime Video"
+  | "YouTube"
+  | "Apple TV+"
+  | "HBO Max"
+  | "Paramount+"
+  | "Peacock"
+  | "Other";

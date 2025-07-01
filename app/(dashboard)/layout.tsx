@@ -13,7 +13,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="flex gap-16 items-center">
             <Logo />
 
-            <div className="flex gap-2">
+            <div className="hidden lg:flex gap-2">
               <Link
                 href={"/rooms"}
                 className="text-sm font-medium bg-secondary px-4 py-2 rounded-md"
@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className=" items-center gap-4 hidden sm:flex">
             <div className="relative">
               <SearchIcon className="h-5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
 

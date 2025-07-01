@@ -5,6 +5,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { sampleRooms } from "@/data/rooms";
 import { ChevronDown, LayoutGrid, LayoutList } from "lucide-react";
 
 export default function Rooms() {
@@ -40,8 +41,11 @@ export default function Rooms() {
         </ToggleGroup>
       </div>
 
-      <div className="mt-8">
-        <Room />
+      {/* <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"> */}
+      <div className="mt-8 grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-8">
+        {sampleRooms.map((room) => (
+          <Room key={room.id} room={room} />
+        ))}
       </div>
     </div>
   );
