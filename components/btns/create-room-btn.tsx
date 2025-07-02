@@ -232,8 +232,6 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
     form.reset();
   };
 
-  console.log({ isSubmitting });
-
   // Show loading state if auth is loading
   if (loading) {
     return (

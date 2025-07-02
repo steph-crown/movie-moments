@@ -9,7 +9,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { sampleRooms } from "@/data/rooms";
+import { useInfiniteRooms } from "@/hooks/use-infinite-rooms";
+import { RoomFilter, RoomSort, SortDirection } from "@/lib/actions/rooms";
 import clsx from "clsx";
 import {
   ChevronDown,
@@ -17,11 +18,84 @@ import {
   LayoutGrid,
   LayoutList,
   SearchIcon,
+  Loader2,
+  ArrowUpDown,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export default function Rooms() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [filter, setFilter] = useState<RoomFilter>("all");
+  const [sort, setSort] = useState<RoomSort>("last_updated");
+  const [direction, setDirection] = useState<SortDirection>("desc");
+  const [searchInput, setSearchInput] = useState("");
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  // Debounce search input
+  const debouncedSearch = useDebounce(searchInput, 300);
+
+  const { rooms, loading, loadingMore, hasMore, error, loadMore, refresh } =
+    useInfiniteRooms({
+      filter,
+      sort,
+      direction,
+      search: debouncedSearch,
+      limit: 12,
+    });
+
+  console.log({ rooms });
+
+  // Infinite scroll observer
+  useEffect(() => {
+    if (observerRef.current) observerRef.current.disconnect();
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore) {
+          loadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observerRef.current.observe(loadMoreRef.current);
+    }
+
+    return () => observerRef.current?.disconnect();
+  }, [hasMore, loadingMore, loadMore]);
+
+  const filterOptions = [
+    { value: "all", label: "All rooms" },
+    { value: "created", label: "My rooms (created by me)" },
+    { value: "joined", label: "Joined rooms" },
+    { value: "invited", label: "Invited rooms" },
+  ];
+
+  const sortOptions = [
+    { value: "last_updated", label: "Last updated" },
+    { value: "date_created", label: "Date created" },
+    { value: "alphabetical", label: "Alphabetical" },
+  ];
+
+  const getFilterLabel = () =>
+    filterOptions.find((f) => f.value === filter)?.label || "All rooms";
+  const getSortLabel = () =>
+    sortOptions.find((s) => s.value === sort)?.label || "Last updated";
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <p className="text-destructive mb-4">{error}</p>
+        <Button onClick={refresh} variant="outline">
+          Try Again
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -32,25 +106,63 @@ export default function Rooms() {
           <div className="hidden items-center gap-6 sm:flex">
             <Popover>
               <PopoverTrigger className="text-xs font-medium flex gap-0.5 items-center">
-                All rooms
+                {getFilterLabel()}
                 <ChevronDown className="h-4" />
               </PopoverTrigger>
-
-              <PopoverContent>
-                Place content for the popover here.
-                {/* options are "All rooms" "My rooms (created by me)", "Joined rooms (not created by me but i joined)", "Invited rooms (where i was invited but havent joined)". Default is All rooms */}
+              <PopoverContent className="w-56">
+                <div className="space-y-2">
+                  {filterOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      className={clsx(
+                        "w-full text-left px-2 py-1 text-sm rounded hover:bg-accent",
+                        filter === option.value && "bg-accent"
+                      )}
+                      onClick={() => setFilter(option.value as RoomFilter)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </PopoverContent>
             </Popover>
 
             <Popover>
               <PopoverTrigger className="text-xs font-medium flex gap-0.5 items-center">
-                Last updated
+                {getSortLabel()}
                 <ChevronDown className="h-4" />
               </PopoverTrigger>
-
-              <PopoverContent>
-                Place content for the popover here.
-                {/* options are Last updated, Date created, Alphabetical. it's a sort, so there should be something the user uses to choose if DESC or ASC. default is Last updated. DESC. */}
+              <PopoverContent className="w-48">
+                <div className="space-y-2">
+                  {sortOptions.map((option) => (
+                    <div
+                      key={option.value}
+                      className="flex items-center justify-between"
+                    >
+                      <button
+                        className={clsx(
+                          "text-left text-sm flex-1 px-2 py-1 rounded hover:bg-accent",
+                          sort === option.value && "bg-accent"
+                        )}
+                        onClick={() => setSort(option.value as RoomSort)}
+                      >
+                        {option.label}
+                      </button>
+                      {sort === option.value && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() =>
+                            setDirection(direction === "asc" ? "desc" : "asc")
+                          }
+                          className="ml-2 h-6 w-6 p-0"
+                        >
+                          <ArrowUpDown className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </PopoverContent>
             </Popover>
           </div>
@@ -62,19 +174,24 @@ export default function Rooms() {
               isMobileFilterOpen && "!text-primary"
             )}
             size={"default"}
-            onClick={() => {
-              setIsMobileFilterOpen((prev) => !prev);
-            }}
+            onClick={() => setIsMobileFilterOpen((prev) => !prev)}
           >
             <Filter className="h-2" />
             Filter
           </Button>
 
-          <ToggleGroup variant="default" size={"sm"} type="single" value="grid">
+          <ToggleGroup
+            variant="default"
+            size={"sm"}
+            type="single"
+            value={viewMode}
+            onValueChange={(value) =>
+              value && setViewMode(value as "grid" | "list")
+            }
+          >
             <ToggleGroupItem value="grid" aria-label="Toggle grid">
               <LayoutGrid />
             </ToggleGroupItem>
-
             <ToggleGroupItem value="list" aria-label="Toggle list">
               <LayoutList />
             </ToggleGroupItem>
@@ -82,37 +199,100 @@ export default function Rooms() {
         </div>
       </div>
 
+      {/* Search Bar */}
+      <div className="mt-4">
+        <div className="relative max-w-md">
+          <SearchIcon className="h-5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+          <Input
+            placeholder="Search rooms..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            className="!text-sm !h-10 w-full !pl-10"
+          />
+        </div>
+      </div>
+
       {isMobileFilterOpen && (
         <div className="flex justify-between items-center sm:hidden mt-4 gap-4">
-          <div className="relative flex-1">
-            <SearchIcon className="h-5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-
-            <Input
-              placeholder="Search rooms"
-              className="!text-xs !h-[2.25rem] w-full !pl-10"
-            />
-          </div>
-
-          <div className="flex items-center gap-6 sm:hidden ">
+          <div className="flex items-center gap-4">
             <Popover>
               <PopoverTrigger className="text-sm font-medium flex gap-0.5 items-center">
-                All rooms
+                {getFilterLabel()}
                 <ChevronDown className="h-4" />
               </PopoverTrigger>
+              <PopoverContent className="w-56">
+                <div className="space-y-2">
+                  {filterOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      className={clsx(
+                        "w-full text-left px-2 py-1 text-sm rounded hover:bg-accent",
+                        filter === option.value && "bg-accent"
+                      )}
+                      onClick={() => setFilter(option.value as RoomFilter)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
 
-              <PopoverContent>
-                Place content for the popover here.
+            <Popover>
+              <PopoverTrigger className="text-sm font-medium flex gap-0.5 items-center">
+                {getSortLabel()}
+                <ChevronDown className="h-4" />
+              </PopoverTrigger>
+              <PopoverContent className="w-48">
+                <div className="space-y-2">
+                  {sortOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      className={clsx(
+                        "w-full text-left px-2 py-1 text-sm rounded hover:bg-accent",
+                        sort === option.value && "bg-accent"
+                      )}
+                      onClick={() => setSort(option.value as RoomSort)}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </PopoverContent>
             </Popover>
           </div>
         </div>
       )}
 
-      {/* <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"> */}
-      <div className="mt-8 grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-8">
-        {sampleRooms.map((room) => (
-          <Room key={room.id} room={room} />
-        ))}
+      {/* Rooms Grid */}
+      <div className="mt-8">
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[200px]">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : rooms.length === 0 ? (
+          <div className="text-center text-muted-foreground py-12">
+            <p>No rooms found.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-8">
+              {rooms.map((room) => (
+                <Room key={room.id} room={room} />
+              ))}
+            </div>
+
+            {/* Load More Trigger */}
+            <div ref={loadMoreRef} className="flex justify-center mt-8">
+              {loadingMore && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Loading more rooms...
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
