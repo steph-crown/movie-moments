@@ -59,7 +59,7 @@ export function Room({ room }: { room: IRoom }) {
         <div
           className="rounded-xl cursor-pointer"
           onClick={() => {
-            router.push(`/rooms/${room.room_code}`);
+            router.push(`/r/${room.room_code}`);
           }}
         >
           <div className="w-full h-[12.5rem] relative">

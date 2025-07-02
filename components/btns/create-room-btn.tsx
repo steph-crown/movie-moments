@@ -201,7 +201,7 @@ export function CreateRoomBtn() {
         setIsMainDialogOpen(false);
 
         // Navigate to the new room
-        router.push(`/rooms/${result.data.room_code}`);
+        router.push(`/r/${result.data.room_code}`);
       } else {
         toast.error("Failed to create room", {
           description: result.error || "Please try again.",
