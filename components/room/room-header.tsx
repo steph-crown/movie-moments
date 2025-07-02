@@ -4,7 +4,6 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { IRoom } from "@/interfaces/room.interface";
 import { Film, Info, Lock, UsersRound } from "lucide-react";
 import { Badge } from "../ui/badge";
-import { RoomDisplayPhoto } from "./room-display-photo";
 
 import { IconShare3 } from "@tabler/icons-react";
 
@@ -20,17 +19,23 @@ export function RoomHeader({ room }: { room: IRoom }) {
 
         <div className="min-w-0 flex justify-between items-center flex-1">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <RoomDisplayPhoto
+            {/* <RoomDisplayPhoto
               room={room}
               className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 block max-[350px]:hidden"
               imageClassName="!rounded-full"
               placeholderEmojiClassName="text-sm"
               placeholderTextClassName="hidden"
-            />
+            /> */}
+            {/* p-2 px-3 rounded-md  shadow-sm  */}
 
-            <div className="min-w-0">
+            {/* <div>{room.content.content_type === "series" ? "📺" : "🎬"}</div> */}
+
+            <div className="min-w-0 bg-background cursor-pointer">
               <div className="flex items-center gap-2 min-w-0">
                 <h1 className="text-[15px] sm:text-base font-semibold font-inter truncate max-[900px]:max-w-[300px]">
+                  <span className="inline-block mr-1.5">
+                    {room.content.content_type === "series" ? "📺" : "🎬"}
+                  </span>
                   {room.title}
                 </h1>
 

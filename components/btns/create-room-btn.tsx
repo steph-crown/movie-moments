@@ -48,6 +48,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { IconCirclePlusFilled } from "@tabler/icons-react";
+import clsx from "clsx";
 
 const STREAMING_PLATFORMS: StreamingPlatform[] = [
   "Netflix",
@@ -90,7 +92,7 @@ const FormSchema = z.object({
 type FormData = z.infer<typeof FormSchema>;
 type Step = "type" | "search" | "details";
 
-export function CreateRoomBtn() {
+export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
   const [step, setStep] = useState<Step>("type");
   const [selectedContent, setSelectedContent] = useState<SearchResult | null>(
     null
@@ -229,19 +231,26 @@ export function CreateRoomBtn() {
   // Show loading state if auth is loading
   if (loading) {
     return (
-      <div>
+      <div className={clsx(fullWidth && "!w-full !flex")}>
         <Button
           disabled
           size="default"
-          className="hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4"
+          className={clsx(
+            "hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4",
+            fullWidth && "!w-full !flex"
+          )}
         >
           <Plus />
           Loading...
         </Button>
+
         <Button
           disabled
           size="icon"
-          className="flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4"
+          className={clsx(
+            "flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4",
+            fullWidth && "!w-full !hidden"
+          )}
         >
           <Plus />
         </Button>
@@ -251,31 +260,6 @@ export function CreateRoomBtn() {
 
   return (
     <>
-      {/* Login Required Dialog */}
-      {/* <AlertDialog open={showLoginDialog} onOpenChange={setShowLoginDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <LogIn className="h-5 w-5" />
-              Sign in required
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              You need to sign in to create a room and invite friends to watch
-              movies together.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <Button variant="outline" onClick={() => setShowLoginDialog(false)}>
-              Cancel
-            </Button>
-            <AlertDialogAction onClick={handleLoginRedirect}>
-              <LogIn className="h-4 w-4 mr-2" />
-              Sign in
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog> */}
-
       {/* Main Create Room Dialog */}
       <Dialog
         open={isMainDialogOpen}
@@ -285,45 +269,49 @@ export function CreateRoomBtn() {
         }}
       >
         <DialogTrigger asChild>
-          <div>
+          <div className={clsx(fullWidth && "!w-full")}>
             <Button
               size="default"
               onClick={handleCreateRoomClick}
-              className="hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4"
+              className={clsx(
+                "hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4",
+                fullWidth && "!w-full flex"
+              )}
             >
-              <Plus />
+              {/* <Plus /> */}
+              <IconCirclePlusFilled />
               Create room
             </Button>
 
             <Button
               size="icon"
               onClick={handleCreateRoomClick}
-              className="flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4"
+              className={clsx(
+                "flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4",
+                fullWidth && "!hidden"
+              )}
             >
               <Plus />
             </Button>
           </div>
         </DialogTrigger>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)}>
-            <DialogContent
-              className="sm:max-w-[32.5rem]"
-              fullScreenOnMobile={true}
-            >
-              <DialogHeader>
-                <DialogTitle>
-                  {showLoginDialog
-                    ? "Sign in required"
-                    : "🎬 Create Your Movie Room"}
-                </DialogTitle>
-                <DialogDescription>
-                  {showLoginDialog
-                    ? "You need to sign in to create a room and invite friends to share movie moments together."
-                    : "Share reactions and chat with friends as you watch"}
-                </DialogDescription>
-              </DialogHeader>
+        <DialogContent className="sm:max-w-[32.5rem]" fullScreenOnMobile={true}>
+          <DialogHeader>
+            <DialogTitle>
+              {showLoginDialog
+                ? "Sign in required"
+                : "🎬 Create Your Movie Room"}
+            </DialogTitle>
+            <DialogDescription>
+              {showLoginDialog
+                ? "You need to sign in to create a room and invite friends to share movie moments together."
+                : "Share reactions and chat with friends as you watch"}
+            </DialogDescription>
+          </DialogHeader>
 
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
               {!showLoginDialog && (
                 <div className="grid gap-4 mt-2">
                   {/* Step 1: Content Type Selection */}
@@ -835,10 +823,15 @@ export function CreateRoomBtn() {
                   </>
                 )}
               </DialogFooter>
-            </DialogContent>
-          </form>
-        </Form>
+            </form>
+          </Form>
+        </DialogContent>
       </Dialog>
     </>
   );
+}
+
+{
+  /* </form>
+        </Form> */
 }

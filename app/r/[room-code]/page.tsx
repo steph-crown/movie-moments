@@ -1,3 +1,4 @@
+import { ChatInput } from "@/components/room/chat-input";
 import { MoviePosition } from "@/components/room/movie-position";
 import { RoomHeader } from "@/components/room/room-header";
 import { RoomSidebar } from "@/components/room/room-sidebar";
@@ -13,13 +14,13 @@ export default function Page() {
       style={
         {
           "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 16)",
+          "--header-height": "calc(var(--spacing) * 22)",
         } as React.CSSProperties
       }
     >
       <RoomSidebar variant="inset" />
 
-      <SidebarInset>
+      <SidebarInset className="relative">
         <RoomHeader room={room} />
 
         <MoviePosition />
@@ -35,6 +36,8 @@ export default function Page() {
             </div>
           </div>
         </div> */}
+
+        <ChatInput className="absolute bottom-5" />
       </SidebarInset>
     </SidebarProvider>
   );

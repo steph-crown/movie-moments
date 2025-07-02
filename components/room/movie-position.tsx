@@ -4,7 +4,7 @@ import { Button } from "../ui/button";
 
 export function MoviePosition() {
   return (
-    <div className="bg-secondary px-4 lg:px-6 py-2 flex items-center justify-between">
+    <div className="bg-secondary px-4 lg:px-6 py-1.5 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <Clock2 className="h-4 text-muted-foreground" />
 
