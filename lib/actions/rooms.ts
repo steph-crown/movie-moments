@@ -15,7 +15,6 @@ export async function createRoom(data: CreateRoomData): Promise<{
   error?: string;
 }> {
   try {
-    console.log({ camehere: "" });
     const supabase = await createClient();
 
     // Get current user

@@ -38,17 +38,19 @@ export default function Rooms() {
 
               <PopoverContent>
                 Place content for the popover here.
+                {/* options are "All rooms" "My rooms (created by me)", "Joined rooms (not created by me but i joined)", "Invited rooms (where i was invited but havent joined)". Default is All rooms */}
               </PopoverContent>
             </Popover>
 
             <Popover>
               <PopoverTrigger className="text-xs font-medium flex gap-0.5 items-center">
-                Last created
+                Last updated
                 <ChevronDown className="h-4" />
               </PopoverTrigger>
 
               <PopoverContent>
                 Place content for the popover here.
+                {/* options are Last updated, Date created, Alphabetical. it's a sort, so there should be something the user uses to choose if DESC or ASC. default is Last updated. DESC. */}
               </PopoverContent>
             </Popover>
           </div>
