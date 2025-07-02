@@ -1,7 +1,7 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { Room } from "@/components/room/room";
+import { RoomListItem } from "@/components/room/room-list-item";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -47,8 +47,6 @@ export default function Rooms() {
       search: debouncedSearch,
       limit: 12,
     });
-
-  console.log({ rooms });
 
   // Infinite scroll observer
   useEffect(() => {
@@ -133,7 +131,7 @@ export default function Rooms() {
         ))}
       </div>
     ),
-    [direction, getSortLabel, sort]
+    [direction, sort]
   );
 
   const filterOptionsMenu = useMemo(
@@ -266,7 +264,7 @@ export default function Rooms() {
         </div>
       )}
 
-      {/* Rooms Grid */}
+      {/* Rooms List/Grid */}
       <div className="mt-8">
         {loading ? (
           <div className="flex items-center justify-center min-h-[200px]">
@@ -278,11 +276,34 @@ export default function Rooms() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-8">
-              {rooms.map((room) => (
-                <Room key={room.id} room={room} />
-              ))}
-            </div>
+            {viewMode === "grid" ? (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(272px,1fr))] gap-8">
+                {rooms.map((room) => (
+                  <Room key={room.id} room={room} />
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-0">
+                {/* List Header */}
+                <div className="grid grid-cols-[auto_1fr_auto_auto] gap-4 px-4 py-3 text-xs font-medium text-muted-foreground border-b bg-muted/30">
+                  <div className="w-12"></div>
+                  <div>Name</div>
+                  <div className="text-center min-w-[100px]">Last modified</div>
+                  <div className="text-center min-w-[80px]">Created</div>
+                </div>
+
+                {/* List Items */}
+                <div className="border border-t-0 rounded-b-lg overflow-hidden">
+                  {rooms.map((room, index) => (
+                    <RoomListItem
+                      key={room.id}
+                      room={room}
+                      isLast={index === rooms.length - 1}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Load More Trigger */}
             <div ref={loadMoreRef} className="flex justify-center mt-8">
