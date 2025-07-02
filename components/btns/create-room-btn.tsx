@@ -174,8 +174,7 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
   };
 
   async function onSubmit(data: FormData) {
-    console.log({ data, user });
-    if (!user) {
+    if (!user || !selectedContent) {
       setShowLoginDialog(true);
       return;
     }
@@ -194,7 +193,19 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
         starting_episode: data.starting_episode,
       };
 
-      const result = await createRoom(roomData);
+      // Pass the selected content data as second parameter
+      const contentData = {
+        tmdb_id: selectedContent.tmdb_id,
+        content_type: selectedContent.content_type,
+        title: selectedContent.title,
+        overview: selectedContent.overview,
+        poster_path: selectedContent.poster_path,
+        backdrop_path: selectedContent.backdrop_path,
+        release_date: selectedContent.release_date,
+        first_air_date: selectedContent.first_air_date,
+      };
+
+      const result = await createRoom(roomData, contentData);
 
       if (result.success && result.data) {
         toast.success("Room created successfully!", {
@@ -208,9 +219,6 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
         // Navigate to the new room
         router.push(`/${result.data.room_code}`);
       } else {
-        // toast.error("Failed to create room", {
-        //   description: result.error || "Please try again.",
-        // });
         showError("Failed to create room", result.error || "Please try again.");
       }
     } catch (error) {

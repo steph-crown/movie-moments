@@ -66,7 +66,7 @@ export async function searchTMDBTVShows(
 
   const data: TMDBSearchResponse = await response.json();
 
-  console.log("result from search shows", data);
+  // console.log("result from search shows", data);
 
   return (data.results as TMDBTVShow[]).map((show) => ({
     tmdb_id: show.id,

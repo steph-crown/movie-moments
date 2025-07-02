@@ -5,24 +5,24 @@ import { Film, Lock, UsersRound } from "lucide-react";
 import { Badge } from "../ui/badge";
 
 import { useRouter } from "next/navigation";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, TooltipTrigger } from "../ui/tooltip";
 import { RoomDisplayPhoto } from "./room-display-photo";
 
 export function Room({ room }: { room: IRoom }) {
   const router = useRouter();
 
-  const formatLastActivity = (timestamp: string) => {
-    const now = new Date();
-    const activity = new Date(timestamp);
-    const diffInMinutes = Math.floor(
-      (now.getTime() - activity.getTime()) / (1000 * 60)
-    );
+  // const formatLastActivity = (timestamp: string) => {
+  //   const now = new Date();
+  //   const activity = new Date(timestamp);
+  //   const diffInMinutes = Math.floor(
+  //     (now.getTime() - activity.getTime()) / (1000 * 60)
+  //   );
 
-    if (diffInMinutes < 1) return "just now";
-    if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
-    if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
-    return `${Math.floor(diffInMinutes / 1440)}d ago`;
-  };
+  //   if (diffInMinutes < 1) return "just now";
+  //   if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+  //   if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)}h ago`;
+  //   return `${Math.floor(diffInMinutes / 1440)}d ago`;
+  // };
 
   return (
     <Tooltip>
@@ -75,7 +75,7 @@ export function Room({ room }: { room: IRoom }) {
         </div>
       </TooltipTrigger>
 
-      <TooltipContent>
+      {/* <TooltipContent>
         <div className="p-2">
           <p className="text-xs font-semibold mb-1">
             Created by @{room.creator.username}
@@ -84,7 +84,7 @@ export function Room({ room }: { room: IRoom }) {
             Last activity: {formatLastActivity(room.last_activity)}
           </p>
         </div>
-      </TooltipContent>
+      </TooltipContent> */}
     </Tooltip>
   );
 }

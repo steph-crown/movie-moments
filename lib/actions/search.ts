@@ -47,6 +47,8 @@ export async function searchContent(
       results: results,
     });
 
+    console.log({ contenttobecached: results.length });
+
     // Optionally pre-cache individual content items
     for (const item of results.slice(0, 5)) {
       // Cache top 5 results
@@ -65,6 +67,8 @@ export async function searchContent(
 
 async function cacheContentItem(item: SearchResult) {
   const supabase = await createClient();
+
+  console.log({ calledcachee: item.title });
 
   try {
     await supabase.from("content_cache").upsert({

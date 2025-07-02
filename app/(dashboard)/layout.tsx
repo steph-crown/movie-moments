@@ -1,12 +1,11 @@
 import { CreateRoomBtn } from "@/components/btns/create-room-btn";
 import { Logo } from "@/components/logo";
-import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { MenuIcon, SearchIcon } from "lucide-react";
+import { MenuIcon } from "lucide-react";
 import Link from "next/link";
 import { ReactNode } from "react";
 
@@ -36,14 +35,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className=" items-center gap-4 flex">
-            <div className="relative hidden sm:block">
+            {/* <div className="relative hidden sm:block">
               <SearchIcon className="h-5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
 
               <Input
                 placeholder="Search rooms"
                 className="!text-xs !h-[2.25rem] w-[12rem] min-[780px]:w-[16rem] !pl-10"
               />
-            </div>
+            </div> */}
 
             <CreateRoomBtn />
 

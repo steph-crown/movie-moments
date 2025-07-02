@@ -245,7 +245,23 @@ export async function fetchUserRooms({
   }
 }
 
-export async function createRoom(data: CreateRoomData): Promise<{
+export async function createRoom(
+  data: CreateRoomData,
+  contentData?: {
+    tmdb_id: number;
+    content_type: string;
+    title: string;
+    overview?: string;
+    poster_path?: string | null;
+    backdrop_path?: string | null;
+    release_date?: string;
+    first_air_date?: string;
+    runtime?: number;
+    number_of_seasons?: number;
+    number_of_episodes?: number;
+    genres?: any[];
+  }
+): Promise<{
   success: boolean;
   data?: {
     id: string;
@@ -265,6 +281,44 @@ export async function createRoom(data: CreateRoomData): Promise<{
       return {
         success: false,
         error: "You must be logged in to create a room",
+      };
+    }
+
+    // Check if content exists in cache, if not create it
+    const { data: existingContent } = await supabase
+      .from("content_cache")
+      .select("id")
+      .eq("tmdb_id", data.content_tmdb_id)
+      .eq("content_type", data.content_type)
+      .single();
+
+    if (!existingContent && contentData) {
+      // Content doesn't exist, create it
+      const { error: contentError } = await supabase
+        .from("content_cache")
+        .insert({
+          tmdb_id: contentData.tmdb_id,
+          content_type: contentData.content_type,
+          title: contentData.title,
+          overview: contentData.overview || "",
+          poster_path: contentData.poster_path || "",
+          backdrop_path: contentData.backdrop_path || "",
+          release_date: contentData.release_date || null,
+          first_air_date: contentData.first_air_date || null,
+          runtime: contentData.runtime || null,
+          number_of_seasons: contentData.number_of_seasons || null,
+          number_of_episodes: contentData.number_of_episodes || null,
+          genres: contentData.genres || [],
+        });
+
+      if (contentError) {
+        console.error("Content cache creation error:", contentError);
+        return { success: false, error: "Failed to cache content information" };
+      }
+    } else if (!existingContent && !contentData) {
+      return {
+        success: false,
+        error: "Content not found in cache and no content data provided",
       };
     }
 
