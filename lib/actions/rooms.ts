@@ -100,52 +100,36 @@ export async function fetchUserRooms({
       )
       .eq("user_id", user.id);
 
-    // Apply filters
-    switch (filter) {
-      case "created":
-        query = query.eq("role", "creator");
-        break;
-      case "joined":
-        query = query.eq("status", "joined").neq("role", "creator");
-        break;
-      case "invited":
-        query = query.eq("status", "pending");
-        break;
-    }
-
-    // Apply search
-    if (search.trim()) {
-      query = query.ilike("rooms.title", `%${search}%`);
-    }
-
-    // Apply sorting
-    switch (sort) {
-      case "date_created":
-        query = query.order("created_at", {
-          ascending: direction === "asc",
-          foreignTable: "rooms",
-        });
-        break;
-      case "alphabetical":
-        query = query.order("title", {
-          ascending: direction === "asc",
-          foreignTable: "rooms",
-        });
-        break;
-      case "last_updated":
-      default:
-        query = query.order("last_activity", {
-          ascending: direction === "asc",
-          foreignTable: "rooms",
-        });
-        break;
-    }
-
-    // Get total count
-    const { count } = await supabase
+    // Build count query with same filters
+    let countQuery = supabase
       .from("room_participants")
       .select("*", { count: "exact", head: true })
       .eq("user_id", user.id);
+
+    // Apply filters to both queries
+    switch (filter) {
+      case "created":
+        query = query.eq("role", "creator");
+        countQuery = countQuery.eq("role", "creator");
+        break;
+      case "joined":
+        query = query.eq("status", "joined").neq("role", "creator");
+        countQuery = countQuery.eq("status", "joined").neq("role", "creator");
+        break;
+      case "invited":
+        query = query.eq("status", "pending");
+        countQuery = countQuery.eq("status", "pending");
+        break;
+    }
+
+    // Apply search to both queries
+    if (search.trim()) {
+      query = query.ilike("rooms.title", `%${search}%`);
+      countQuery = countQuery.ilike("rooms.title", `%${search}%`);
+    }
+
+    // Get total count with same filters
+    const { count } = await countQuery;
 
     // Apply pagination
     const offset = (page - 1) * limit;
@@ -158,7 +142,7 @@ export async function fetchUserRooms({
       return { success: false, error: "Failed to fetch rooms" };
     }
 
-    // Transform data - much simpler now with single query!
+    // Transform data first
     const rooms: IRoom[] = data.map((item: any) => {
       const room = item.rooms;
       const cachedContent = room.content_cache;
@@ -225,13 +209,36 @@ export async function fetchUserRooms({
       };
     });
 
+    // Apply sorting in JavaScript since Supabase foreign table sorting is unreliable
+    const sortedRooms = rooms.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sort) {
+        case "date_created":
+          comparison =
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case "alphabetical":
+          comparison = a.title.localeCompare(b.title);
+          break;
+        case "last_updated":
+        default:
+          comparison =
+            new Date(a.last_activity).getTime() -
+            new Date(b.last_activity).getTime();
+          break;
+      }
+
+      return direction === "asc" ? comparison : -comparison;
+    });
+
     const totalCount = count || 0;
     const hasMore = offset + limit < totalCount;
 
     return {
       success: true,
       data: {
-        rooms,
+        rooms: sortedRooms,
         totalCount,
         hasMore,
       },
