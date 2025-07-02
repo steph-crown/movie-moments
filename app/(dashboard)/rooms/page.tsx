@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { Room } from "@/components/room/room";
@@ -9,20 +10,21 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useInfiniteRooms } from "@/hooks/use-infinite-rooms";
 import { RoomFilter, RoomSort, SortDirection } from "@/lib/actions/rooms";
 import clsx from "clsx";
 import {
+  ArrowDown,
+  ArrowUp,
   ChevronDown,
   Filter,
   LayoutGrid,
   LayoutList,
-  SearchIcon,
   Loader2,
-  ArrowUpDown,
+  SearchIcon,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
-import { useDebounce } from "@/hooks/use-debounce";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function Rooms() {
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
@@ -86,6 +88,74 @@ export default function Rooms() {
   const getSortLabel = () =>
     sortOptions.find((s) => s.value === sort)?.label || "Last updated";
 
+  const sortOptionsMenu = useMemo(
+    () => (
+      <div className="space-y-2">
+        {sortOptions.map((option) => (
+          <div key={option.value} className="flex items-center justify-between">
+            <button
+              className={clsx(
+                "text-left text-sm flex-1 px-2 py-1 rounded hover:bg-accent",
+                sort === option.value && "bg-accent"
+              )}
+              onClick={() => setSort(option.value as RoomSort)}
+            >
+              {option.label}
+            </button>
+            {sort === option.value && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() =>
+                  setDirection(direction === "asc" ? "desc" : "asc")
+                }
+                className="ml-2 h-6 w-8 p-0 flex items-center justify-center gap-0.5"
+              >
+                <ArrowUp
+                  className={clsx(
+                    "h-3 w-3 -mr-1",
+                    direction === "asc"
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  )}
+                />
+                <ArrowDown
+                  className={clsx(
+                    "h-3 w-3",
+                    direction === "desc"
+                      ? "text-primary"
+                      : "text-muted-foreground"
+                  )}
+                />
+              </Button>
+            )}
+          </div>
+        ))}
+      </div>
+    ),
+    [direction, getSortLabel, sort]
+  );
+
+  const filterOptionsMenu = useMemo(
+    () => (
+      <div className="space-y-2">
+        {filterOptions.map((option) => (
+          <button
+            key={option.value}
+            className={clsx(
+              "w-full text-left px-2 py-1 text-sm rounded hover:bg-accent",
+              filter === option.value && "bg-accent"
+            )}
+            onClick={() => setFilter(option.value as RoomFilter)}
+          >
+            {option.label}
+          </button>
+        ))}
+      </div>
+    ),
+    [filter]
+  );
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
@@ -105,64 +175,22 @@ export default function Rooms() {
         <div className="flex justify-end items-center gap-6">
           <div className="hidden items-center gap-6 sm:flex">
             <Popover>
-              <PopoverTrigger className="text-xs font-medium flex gap-0.5 items-center">
+              <PopoverTrigger className="text-sm font-medium flex gap-0.5 items-center">
                 {getFilterLabel()}
                 <ChevronDown className="h-4" />
               </PopoverTrigger>
               <PopoverContent className="w-56">
-                <div className="space-y-2">
-                  {filterOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      className={clsx(
-                        "w-full text-left px-2 py-1 text-sm rounded hover:bg-accent",
-                        filter === option.value && "bg-accent"
-                      )}
-                      onClick={() => setFilter(option.value as RoomFilter)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+                {filterOptionsMenu}
               </PopoverContent>
             </Popover>
 
             <Popover>
-              <PopoverTrigger className="text-xs font-medium flex gap-0.5 items-center">
+              <PopoverTrigger className="text-sm font-medium flex gap-0.5 items-center">
                 {getSortLabel()}
                 <ChevronDown className="h-4" />
               </PopoverTrigger>
               <PopoverContent className="w-48">
-                <div className="space-y-2">
-                  {sortOptions.map((option) => (
-                    <div
-                      key={option.value}
-                      className="flex items-center justify-between"
-                    >
-                      <button
-                        className={clsx(
-                          "text-left text-sm flex-1 px-2 py-1 rounded hover:bg-accent",
-                          sort === option.value && "bg-accent"
-                        )}
-                        onClick={() => setSort(option.value as RoomSort)}
-                      >
-                        {option.label}
-                      </button>
-                      {sort === option.value && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            setDirection(direction === "asc" ? "desc" : "asc")
-                          }
-                          className="ml-2 h-6 w-6 p-0"
-                        >
-                          <ArrowUpDown className="h-3 w-3" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                {sortOptionsMenu}
               </PopoverContent>
             </Popover>
           </div>
@@ -221,20 +249,7 @@ export default function Rooms() {
                 <ChevronDown className="h-4" />
               </PopoverTrigger>
               <PopoverContent className="w-56">
-                <div className="space-y-2">
-                  {filterOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      className={clsx(
-                        "w-full text-left px-2 py-1 text-sm rounded hover:bg-accent",
-                        filter === option.value && "bg-accent"
-                      )}
-                      onClick={() => setFilter(option.value as RoomFilter)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+                {filterOptionsMenu}
               </PopoverContent>
             </Popover>
 
@@ -244,20 +259,7 @@ export default function Rooms() {
                 <ChevronDown className="h-4" />
               </PopoverTrigger>
               <PopoverContent className="w-48">
-                <div className="space-y-2">
-                  {sortOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      className={clsx(
-                        "w-full text-left px-2 py-1 text-sm rounded hover:bg-accent",
-                        sort === option.value && "bg-accent"
-                      )}
-                      onClick={() => setSort(option.value as RoomSort)}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
+                {sortOptionsMenu}
               </PopoverContent>
             </Popover>
           </div>
