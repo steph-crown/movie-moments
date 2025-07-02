@@ -5,7 +5,7 @@ export const sampleRooms: IRoom[] = [
   {
     id: "1",
     room_code: "BB2024",
-    title: "Breaking Bad Marathon", // Custom room title
+    title: "Breaking Bad Marathon Breaking Bad Marathon", // Custom room title
     content_tmdb_id: 1396,
     streaming_platform: "Netflix",
     privacy_level: "private",
@@ -25,8 +25,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "A high school chemistry teacher diagnosed with inoperable lung cancer turns to manufacturing and selling methamphetamine in order to secure his family's future.",
       poster_path: "/ggFHVNu6YYI5L9pCfOacjizRGt.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      backdrop_path: "/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
       number_of_seasons: 5,
       number_of_episodes: 62,
       genres: [
@@ -65,9 +64,8 @@ export const sampleRooms: IRoom[] = [
       title: "Avengers: Endgame",
       overview:
         "After the devastating events of Avengers: Infinity War, the universe is in ruins due to the efforts of the Mad Titan, Thanos.",
-      poster_path: "/or06FN3Dka5tukK1e9sl16pB3iy.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
+      poster_path: "/mor06FN3Dka5tukK1e9sl16pB3iy.jpg",
+      backdrop_path: "/d2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
       runtime: 181,
       genres: [
         { id: 12, name: "Adventure" },
@@ -107,8 +105,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "Paranormal investigators Ed and Lorraine Warren work to help a family terrorized by a dark presence in their farmhouse.",
       poster_path: "/wVYREutTvI2tmxr6ujrHT704wGF.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/wnnu8htEZBLtwrke9QYfLKx6zjp.jpg",
+      backdrop_path: "/wnnu8htEZBLtwrke9QYfLKx6zjp.jpg",
       runtime: 112,
       genres: [
         { id: 27, name: "Horror" },
@@ -149,8 +146,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "Cobb, a skilled thief who commits corporate espionage by infiltrating the subconscious of his targets is offered a chance to regain his old life.",
       poster_path: "/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      backdrop_path: "/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
       runtime: 148,
       genres: [
         { id: 28, name: "Action" },
@@ -190,8 +186,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "When a young boy vanishes, a small town uncovers a mystery involving secret experiments, terrifying supernatural forces, and one strange little girl.",
       poster_path: "/49WJfeN0moxb9IPfGn8AIqMGskD.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      backdrop_path: "/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
       number_of_seasons: 4,
       number_of_episodes: 42,
       genres: [
@@ -232,8 +227,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "The Targaryen dynasty is at the absolute apex of its power, with more than 10 dragons under their yoke. Most empires crumble from such heights.",
       poster_path: "/z2yahl2uefxDCl0nogcRBstwruJ.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
+      backdrop_path: "/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
       number_of_seasons: 2,
       number_of_episodes: 18,
       genres: [
@@ -274,8 +268,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "A young chef from the fine dining world comes home to Chicago to run his family sandwich shop.",
       poster_path: "/sHFlbKS3WLqMnp9t2ghADIJFnuQ.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/gklrevVndG98GHGDwfm8y8kxESo.jpg",
+      backdrop_path: "/gklrevVndG98GHGDwfm8y8kxESo.jpg",
       number_of_seasons: 3,
       number_of_episodes: 28,
       genres: [
@@ -320,8 +313,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "After more than thirty years of service as one of the Navy's top aviators, Pete 'Maverick' Mitchell is where he belongs, pushing the envelope as a courageous test pilot.",
       poster_path: "/62HCnUTziyWcpDaBO2i1DX17ljH.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      backdrop_path: "/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
       runtime: 130,
       genres: [
         { id: 28, name: "Action" },
@@ -363,8 +355,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "A ten-year-old girl who, while moving to a new neighborhood, enters the world of Kami (spirits of Japanese Shinto folklore).",
       poster_path: "/39wmItIWsg5sZMyRUHLkWBcuVCM.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
+      backdrop_path: "/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
       runtime: 125,
       genres: [
         { id: 16, name: "Animation" },
@@ -406,8 +397,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family.",
       poster_path: "/1pdfLvkbY9ohJlCjQH2CZjjYVvJ.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
+      backdrop_path: "/2m1Mu0xPj4SikiqkaolTRUcNtWH.jpg",
       runtime: 166,
       genres: [
         { id: 878, name: "Science Fiction" },
@@ -446,8 +436,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "The everyday lives of office employees in the Scranton, Pennsylvania branch of the fictional Dunder Mifflin Paper Company.",
       poster_path: "/7DJKHzAi83BmQrWLrYYOqcoKfhR.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/gklrevVndG98GHGDwfm8y8kxESo.jpg",
+      backdrop_path: "/gklrevVndG98GHGDwfm8y8kxESo.jpg",
       number_of_seasons: 9,
       number_of_episodes: 201,
       genres: [{ id: 35, name: "Comedy" }],
@@ -484,8 +473,7 @@ export const sampleRooms: IRoom[] = [
       overview:
         "The story of J. Robert Oppenheimer's role in the development of the atomic bomb during World War II.",
       poster_path: "/8Gxv8gSFCU0XGDykEGv7zR1n2ua.jpg",
-      backdrop_path:
-        "https://image.tmdb.org/t/p/original/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
+      backdrop_path: "/2meX1nMdScFOoV4370rqHWKmXhY.jpg",
       runtime: 180,
       genres: [
         { id: 18, name: "Drama" },

@@ -1,6 +1,6 @@
 "use client";
 
-import { Room } from "@/components/room";
+import { Room } from "@/components/room/room";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
