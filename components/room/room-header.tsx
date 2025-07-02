@@ -2,9 +2,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { IRoom } from "@/interfaces/room.interface";
-import { Film, Info, Lock, Share, UsersRound } from "lucide-react";
+import { Film, Info, Lock, UsersRound } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { RoomDisplayPhoto } from "./room-display-photo";
+
+import { IconShare3 } from "@tabler/icons-react";
 
 export function RoomHeader({ room }: { room: IRoom }) {
   return (
@@ -62,7 +64,7 @@ export function RoomHeader({ room }: { room: IRoom }) {
 
           <div className="hidden lg:flex items-center gap-2 ">
             <Button variant="outline" size="sm" className="font-semibold">
-              <Share className="text-muted-foreground text-sm" />
+              <IconShare3 className="text-muted-foreground text-sm" />
               Share
             </Button>
 

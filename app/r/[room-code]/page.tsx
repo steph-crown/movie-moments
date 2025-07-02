@@ -1,11 +1,8 @@
-import { RoomSidebar } from "@/components/room/room-sidebar";
-import { ChartAreaInteractive } from "@/components/chart-area-interactive";
-import { DataTable } from "@/components/data-table";
-import { SectionCards } from "@/components/section-cards";
+import { MoviePosition } from "@/components/room/movie-position";
 import { RoomHeader } from "@/components/room/room-header";
+import { RoomSidebar } from "@/components/room/room-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
-import data from "./data.json";
 import { sampleRooms } from "@/data/rooms";
 
 export default function Page() {
@@ -25,7 +22,9 @@ export default function Page() {
       <SidebarInset>
         <RoomHeader room={room} />
 
-        <div className="flex flex-1 flex-col">
+        <MoviePosition />
+
+        {/* <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
               <SectionCards />
@@ -35,7 +34,7 @@ export default function Page() {
               <DataTable data={data} />
             </div>
           </div>
-        </div>
+        </div> */}
       </SidebarInset>
     </SidebarProvider>
   );
