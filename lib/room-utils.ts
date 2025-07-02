@@ -1,11 +1,28 @@
 import { IRoom } from "@/interfaces/room.interface";
-
 export function generateRoomCode(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const chars = "abcdefghijklmnopqrstuvwxyz";
   let result = "";
-  for (let i = 0; i < 8; i++) {
+
+  // Generate 3 groups of 3-4 letters each
+  // First group: 3 letters
+  for (let i = 0; i < 3; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
+
+  result += "-";
+
+  // Second group: 4 letters
+  for (let i = 0; i < 4; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
+  result += "-";
+
+  // Third group: 3 letters
+  for (let i = 0; i < 3; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+
   return result;
 }
 

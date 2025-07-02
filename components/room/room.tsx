@@ -30,7 +30,7 @@ export function Room({ room }: { room: IRoom }) {
         <div
           className="rounded-xl cursor-pointer"
           onClick={() => {
-            router.push(`/r/${room.room_code}`);
+            router.push(`/${room.room_code}`);
           }}
         >
           <RoomDisplayPhoto room={room} className="w-full h-[12.5rem]" />

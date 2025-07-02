@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 // Generic debounce hook
 export function useDebouncedSearch<T>(
   searchFunction: (query: string) => Promise<T>,
-  delay: number = 300
+  delay: number = 700
 ) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<T | null>(null);

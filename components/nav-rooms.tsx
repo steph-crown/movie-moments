@@ -49,7 +49,7 @@ export function NavRooms({ rooms }: { rooms: IRoom[] }) {
                 }}
               >
                 <Link
-                  href={`/r/${room.room_code}`}
+                  href={`/${room.room_code}`}
                   className="!block border border-solid border-border rounded-md px-3 py-3 w-full"
                 >
                   {/* <div className="min-w-0"> */}

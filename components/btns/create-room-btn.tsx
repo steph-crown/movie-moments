@@ -50,6 +50,8 @@ import {
 } from "../ui/select";
 import { IconCirclePlusFilled } from "@tabler/icons-react";
 import clsx from "clsx";
+import { InlineLoader } from "../loaders/inline-loader";
+import { useToast } from "@/hooks/use-toast";
 
 const STREAMING_PLATFORMS: StreamingPlatform[] = [
   "Netflix",
@@ -93,6 +95,7 @@ type FormData = z.infer<typeof FormSchema>;
 type Step = "type" | "search" | "details";
 
 export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
+  const { showError } = useToast();
   const [step, setStep] = useState<Step>("type");
   const [selectedContent, setSelectedContent] = useState<SearchResult | null>(
     null
@@ -203,11 +206,12 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
         setIsMainDialogOpen(false);
 
         // Navigate to the new room
-        router.push(`/r/${result.data.room_code}`);
+        router.push(`/${result.data.room_code}`);
       } else {
-        toast.error("Failed to create room", {
-          description: result.error || "Please try again.",
-        });
+        // toast.error("Failed to create room", {
+        //   description: result.error || "Please try again.",
+        // });
+        showError("Failed to create room", result.error || "Please try again.");
       }
     } catch (error) {
       console.error("Room creation error:", error);
@@ -227,6 +231,8 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
     clearError();
     form.reset();
   };
+
+  console.log({ isSubmitting });
 
   // Show loading state if auth is loading
   if (loading) {
@@ -531,35 +537,6 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
                         </div>
                       </div>
 
-                      {/* Streaming Platform */}
-                      <FormField
-                        control={form.control}
-                        name="streaming_platform"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Where are you watching?</FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              defaultValue={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select streaming platform" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {STREAMING_PLATFORMS.map((platform) => (
-                                  <SelectItem key={platform} value={platform}>
-                                    {platform}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
                       {/* Room Title */}
                       <FormField
                         control={form.control}
@@ -578,6 +555,35 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
                               Make it personal! Examples: &quot;Weekend Horror
                               Night&quot; • &quot;Marvel Movie Marathon&quot;
                             </p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Streaming Platform */}
+                      <FormField
+                        control={form.control}
+                        name="streaming_platform"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Where are you watching?</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="w-full">
+                                  <SelectValue placeholder="Select streaming platform" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {STREAMING_PLATFORMS.map((platform) => (
+                                  <SelectItem key={platform} value={platform}>
+                                    {platform}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -812,12 +818,13 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
                       >
                         {isSubmitting ? (
                           <div className="flex items-center gap-2">
-                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            Creating...
+                            Creating room...
                           </div>
                         ) : (
                           "Create Room & Invite Friends"
                         )}
+
+                        {isSubmitting && <InlineLoader />}
                       </Button>
                     )}
                   </>
