@@ -19,17 +19,6 @@ export function RoomHeader({ room }: { room: IRoom }) {
 
         <div className="min-w-0 flex justify-between items-center flex-1">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            {/* <RoomDisplayPhoto
-              room={room}
-              className="h-9 w-9 sm:h-10 sm:w-10 shrink-0 block max-[350px]:hidden"
-              imageClassName="!rounded-full"
-              placeholderEmojiClassName="text-sm"
-              placeholderTextClassName="hidden"
-            /> */}
-            {/* p-2 px-3 rounded-md  shadow-sm  */}
-
-            {/* <div>{room.content.content_type === "series" ? "📺" : "🎬"}</div> */}
-
             <div className="min-w-0 bg-background cursor-pointer">
               <div className="flex items-center gap-2 min-w-0">
                 <h1 className="text-[15px] sm:text-base font-semibold font-inter truncate max-[900px]:max-w-[300px]">

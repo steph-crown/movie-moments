@@ -415,3 +415,168 @@ export async function createRoom(
     };
   }
 }
+
+export async function fetchRoomByCode(roomCode: string): Promise<{
+  success: boolean;
+  data?: IRoom;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return {
+        success: false,
+        error: "You must be logged in to view rooms",
+      };
+    }
+
+    // First get the room basic info
+    const { data: roomData, error: roomError } = await supabase
+      .from("rooms")
+      .select(
+        `
+        id,
+        room_code,
+        title,
+        content_tmdb_id,
+        content_type,
+        streaming_platform,
+        privacy_level,
+        spoiler_policy,
+        starting_season,
+        starting_episode,
+        creator_id,
+        status,
+        is_permanent,
+        member_count,
+        created_at,
+        last_activity,
+        content_cache!rooms_content_cache_fkey (
+          id,
+          tmdb_id,
+          content_type,
+          title,
+          overview,
+          poster_path,
+          backdrop_path,
+          runtime,
+          number_of_seasons,
+          number_of_episodes,
+          genres,
+          release_date,
+          first_air_date,
+          cached_at,
+          last_accessed
+        )
+      `
+      )
+      .eq("room_code", roomCode)
+      .single();
+
+    if (roomError || !roomData) {
+      return {
+        success: false,
+        error: "Room not found",
+      };
+    }
+
+    // Check if user is a participant in this room
+    const { data: participantData, error: participantError } = await supabase
+      .from("room_participants")
+      .select("status, role, joined_at")
+      .eq("room_id", roomData.id)
+      .eq("user_id", user.id)
+      .single();
+
+    if (participantError || !participantData) {
+      return {
+        success: false,
+        error: "You are not a member of this room",
+      };
+    }
+
+    const cachedContent = roomData.content_cache as any;
+
+    // Transform to IRoom format
+    const room: IRoom = {
+      id: roomData.id,
+      room_code: roomData.room_code,
+      title: roomData.title,
+      content_tmdb_id: roomData.content_tmdb_id,
+      content: cachedContent
+        ? {
+            id: cachedContent.id,
+            tmdb_id: cachedContent.tmdb_id,
+            content_type: cachedContent.content_type,
+            title: cachedContent.title,
+            overview: cachedContent.overview,
+            poster_path: cachedContent.poster_path,
+            backdrop_path: cachedContent.backdrop_path,
+            runtime: cachedContent.runtime,
+            number_of_seasons: cachedContent.number_of_seasons,
+            number_of_episodes: cachedContent.number_of_episodes,
+            genres: cachedContent.genres || [],
+            release_date: cachedContent.release_date,
+            first_air_date: cachedContent.first_air_date,
+            platforms: [],
+            cached_at: cachedContent.cached_at,
+            last_accessed: cachedContent.last_accessed,
+          }
+        : {
+            id: `${roomData.content_tmdb_id}`,
+            tmdb_id: roomData.content_tmdb_id,
+            content_type: roomData.content_type,
+            title: roomData.title,
+            poster_path: "",
+            backdrop_path: "",
+            genres: [],
+            cached_at: new Date().toISOString(),
+            last_accessed: new Date().toISOString(),
+          },
+      streaming_platform: roomData.streaming_platform,
+      privacy_level: roomData.privacy_level,
+      spoiler_policy: roomData.spoiler_policy,
+      season_number: roomData.starting_season,
+      episode_number: roomData.starting_episode,
+      creator_id: roomData.creator_id,
+      status: roomData.status,
+      is_permanent: roomData.is_permanent,
+      member_count: roomData.member_count,
+      created_at: roomData.created_at,
+      last_activity: roomData.last_activity,
+      unread_count: 0,
+      creator: {
+        id: roomData.creator_id,
+        username: "User",
+        display_name: "User",
+      },
+      invitation_status:
+        participantData.status === "pending"
+          ? "pending"
+          : participantData.status === "joined"
+          ? "accepted"
+          : undefined,
+      invited_at:
+        participantData.status === "pending"
+          ? participantData.joined_at
+          : undefined,
+    };
+
+    return {
+      success: true,
+      data: room,
+    };
+  } catch (error) {
+    console.error("Fetch room error:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch room",
+    };
+  }
+}

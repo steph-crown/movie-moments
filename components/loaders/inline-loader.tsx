@@ -1,6 +1,14 @@
-export function InlineLoader({ color = "white" }: { color?: string }) {
+import clsx from "clsx";
+
+export function InlineLoader({
+  className,
+  color = "white",
+}: {
+  color?: string;
+  className?: string;
+}) {
   return (
-    <svg viewBox="0 0 24 24" className="size-4 animate-spin">
+    <svg viewBox="0 0 24 24" className={clsx("size-4 animate-spin", className)}>
       <circle
         cx="12"
         cy="12"

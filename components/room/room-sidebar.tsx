@@ -23,7 +23,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { sampleRooms } from "@/data/rooms";
 import { Logo } from "../logo";
 
 const data = {
@@ -120,7 +119,7 @@ export function RoomSidebar({
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        <NavRooms rooms={sampleRooms} />
+        <NavRooms />
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
