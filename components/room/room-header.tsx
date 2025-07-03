@@ -57,7 +57,7 @@ export function RoomHeader({ room }: { room: IRoom }) {
           </div>
 
           <div className="hidden lg:flex items-center gap-2 ">
-            <ShareBtn />
+            {!!room && <ShareBtn room={room} />}
 
             <Button variant="outline" size="sm" className="font-semibold">
               <Info className="text-muted-foreground text-sm" />
