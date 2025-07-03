@@ -5,7 +5,7 @@ import { IRoom } from "@/interfaces/room.interface";
 import { Film, Info, Lock, UsersRound } from "lucide-react";
 import { Badge } from "../ui/badge";
 
-import { IconShare3 } from "@tabler/icons-react";
+import { ShareBtn } from "../btns/share-btn";
 
 export function RoomHeader({ room }: { room: IRoom }) {
   return (
@@ -57,10 +57,7 @@ export function RoomHeader({ room }: { room: IRoom }) {
           </div>
 
           <div className="hidden lg:flex items-center gap-2 ">
-            <Button variant="outline" size="sm" className="font-semibold">
-              <IconShare3 className="text-muted-foreground text-sm" />
-              Share
-            </Button>
+            <ShareBtn />
 
             <Button variant="outline" size="sm" className="font-semibold">
               <Info className="text-muted-foreground text-sm" />
