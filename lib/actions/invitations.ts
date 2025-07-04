@@ -2,6 +2,9 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { getUserByEmail, getUserByUsername } from "./users";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export interface InvitationData {
   roomId: string;
@@ -32,6 +35,16 @@ export async function sendRoomInvitations(data: InvitationData): Promise<{
       };
     }
 
+    // Get the inviter's profile for the email
+    const { data: inviterProfile } = await supabase
+      .from("profiles")
+      .select("display_name, username")
+      .eq("id", currentUser.id)
+      .single();
+
+    const inviterName =
+      inviterProfile?.display_name || inviterProfile?.username || "Someone";
+
     const invitationResults = [];
 
     // Process email invitations
@@ -40,6 +53,7 @@ export async function sendRoomInvitations(data: InvitationData): Promise<{
         email,
         roomId: data.roomId,
         invitedBy: currentUser.id,
+        inviterName,
         personalMessage: data.personalMessage,
         roomTitle: data.roomTitle,
         roomCode: data.roomCode,
@@ -53,6 +67,7 @@ export async function sendRoomInvitations(data: InvitationData): Promise<{
         username,
         roomId: data.roomId,
         invitedBy: currentUser.id,
+        inviterName,
         personalMessage: data.personalMessage,
         roomTitle: data.roomTitle,
         roomCode: data.roomCode,
@@ -138,6 +153,7 @@ async function createEmailInvitation({
   email,
   roomId,
   invitedBy,
+  inviterName,
   personalMessage,
   roomTitle,
   roomCode,
@@ -145,6 +161,7 @@ async function createEmailInvitation({
   email: string;
   roomId: string;
   invitedBy: string;
+  inviterName: string;
   personalMessage?: string;
   roomTitle: string;
   roomCode: string;
@@ -210,14 +227,19 @@ async function createEmailInvitation({
       return { success: false, error: `Failed to invite ${email}` };
     }
 
-    // Send email invitation
-    await sendInvitationEmail({
+    // Send email invitation using Resend
+    const emailSent = await sendResendInvitationEmail({
       email,
       roomTitle,
       roomCode,
+      inviterName,
       personalMessage,
       isExistingUser: userResult.success,
     });
+
+    if (!emailSent) {
+      console.warn(`Participant created but email failed to send for ${email}`);
+    }
 
     return { success: true };
   } catch (error) {
@@ -230,6 +252,7 @@ async function createUsernameInvitation({
   username,
   roomId,
   invitedBy,
+  inviterName,
   personalMessage,
   roomTitle,
   roomCode,
@@ -237,6 +260,7 @@ async function createUsernameInvitation({
   username: string;
   roomId: string;
   invitedBy: string;
+  inviterName: string;
   personalMessage?: string;
   roomTitle: string;
   roomCode: string;
@@ -271,7 +295,7 @@ async function createUsernameInvitation({
     const participantData = {
       room_id: roomId,
       user_id: user.id,
-      email: null, // We don't have email from username lookup
+      email: null,
       username: user.username,
       status: "pending",
       role: "member",
@@ -296,14 +320,21 @@ async function createUsernameInvitation({
       .single();
 
     if (profile?.email) {
-      await sendInvitationEmail({
+      const emailSent = await sendResendInvitationEmail({
         email: profile.email,
         roomTitle,
         roomCode,
+        inviterName,
         personalMessage,
         isExistingUser: true,
         username: user.username,
       });
+
+      if (!emailSent) {
+        console.warn(
+          `Participant created but email failed to send for ${username}`
+        );
+      }
     }
 
     return { success: true };
@@ -313,10 +344,11 @@ async function createUsernameInvitation({
   }
 }
 
-async function sendInvitationEmail({
+async function sendResendInvitationEmail({
   email,
   roomTitle,
   roomCode,
+  inviterName,
   personalMessage,
   isExistingUser,
   username,
@@ -324,98 +356,93 @@ async function sendInvitationEmail({
   email: string;
   roomTitle: string;
   roomCode: string;
+  inviterName: string;
   personalMessage?: string;
   isExistingUser: boolean;
   username?: string;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
-    // TODO: Implement email sending using your preferred service (Resend, SendGrid, etc.)
-    // This is a placeholder implementation
+    if (!process.env.RESEND_API_KEY) {
+      console.error("RESEND_API_KEY not found in environment variables");
+      return false;
+    }
 
     const roomUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/${roomCode}`;
+    const greeting = username ? `@${username}` : "there";
+    const actionText = isExistingUser ? "Join Room" : "Sign Up & Join";
 
-    const emailData = {
-      to: email,
-      subject: `You're invited to watch "${roomTitle}" on MovieMoments`,
-      html: generateInvitationEmailHTML({
-        roomTitle,
-        roomUrl,
-        personalMessage,
-        isExistingUser,
-        username,
-      }),
-    };
+    const { data, error } = await resend.emails.send({
+      // from: "MovieMoments <noreply@moviemoments.com>", // Replace with your verified domain
+      from: "MovieMoments <onboarding@resend.dev>", // Replace with your verified domain
+      // to: [email],
+      to: "emmanuelstephen024@gmail.com",
+      subject: `Join "${roomTitle}" on MovieMoments ${email}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>MovieMoments Invitation</title>
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+            <div style="background: white; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+              <div style="text-align: center; margin-bottom: 32px;">
+                <h1 style="color: #6366f1; margin: 0; font-size: 28px;">🎬 MovieMoments</h1>
+              </div>
 
-    console.log("Email invitation data:", emailData);
+              <h2 style="color: #1f2937; margin-bottom: 16px;">Hi ${greeting}!</h2>
 
-    // Example with Resend (uncomment and configure when ready):
-    // const resend = new Resend(process.env.RESEND_API_KEY);
-    // await resend.emails.send(emailData);
+              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+                <strong>${inviterName}</strong> has invited you to join a movie room: <strong>"${roomTitle}"</strong>
+              </p>
+
+              ${
+                personalMessage
+                  ? `<div style="background: #f1f5f9; padding: 16px; border-radius: 8px; margin: 24px 0; border-left: 4px solid #6366f1;">
+                <p style="margin: 0; font-style: italic; color: #475569;">"${personalMessage}"</p>
+              </div>`
+                  : ""
+              }
+
+              <p style="color: #374151; font-size: 16px; line-height: 1.6; margin-bottom: 32px;">
+                Watch together, share reactions, and chat in real-time with your friends!
+              </p>
+
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${roomUrl}" style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                  ${actionText}
+                </a>
+              </div>
+
+              <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-top: 24px;">
+                <p style="color: #6b7280; font-size: 14px; margin: 0; text-align: center;">
+                  Or copy and paste this link into your browser:
+                </p>
+                <p style="color: #6366f1; font-size: 14px; margin: 8px 0 0 0; text-align: center; word-break: break-all;">
+                  ${roomUrl}
+                </p>
+              </div>
+
+              <hr style="margin: 32px 0; border: none; border-top: 1px solid #e5e7eb;">
+
+              <p style="color: #9ca3af; font-size: 12px; text-align: center; margin: 0;">
+                This invitation was sent from MovieMoments. If you didn't expect this invitation, you can safely ignore this email.
+              </p>
+            </div>
+          </body>
+        </html>
+      `,
+    });
+
+    if (error) {
+      console.error("Error sending email with Resend:", error);
+      return false;
+    }
+
+    console.log("Email sent successfully with Resend:", data?.id);
+    return true;
   } catch (error) {
-    console.error("Error sending invitation email:", error);
-    // Don't throw error here as the invitation was already created
+    console.error("Error in sendResendInvitationEmail:", error);
+    return false;
   }
-}
-
-function generateInvitationEmailHTML({
-  roomTitle,
-  roomUrl,
-  personalMessage,
-  isExistingUser,
-  username,
-}: {
-  roomTitle: string;
-  roomUrl: string;
-  personalMessage?: string;
-  isExistingUser: boolean;
-  username?: string;
-}): string {
-  const greeting = username ? `Hi @${username}!` : "Hi there!";
-  const actionText = isExistingUser ? "Join Room" : "Sign Up & Join";
-
-  return `
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <meta charset="utf-8">
-        <title>MovieMoments Invitation</title>
-      </head>
-      <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #6366f1;">🎬 MovieMoments</h1>
-        </div>
-
-        <h2>${greeting}</h2>
-
-        <p>You've been invited to join a movie room: <strong>"${roomTitle}"</strong></p>
-
-        ${
-          personalMessage
-            ? `<div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 20px 0;">
-          <p style="margin: 0; font-style: italic;">"${personalMessage}"</p>
-        </div>`
-            : ""
-        }
-
-        <p>Watch together, share reactions, and chat in real-time with your friends!</p>
-
-        <div style="text-align: center; margin: 30px 0;">
-          <a href="${roomUrl}" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-            ${actionText}
-          </a>
-        </div>
-
-        <p style="color: #666; font-size: 14px;">
-          Or copy and paste this link into your browser: <br>
-          <a href="${roomUrl}">${roomUrl}</a>
-        </p>
-
-        <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;">
-
-        <p style="color: #999; font-size: 12px; text-align: center;">
-          This invitation was sent from MovieMoments. If you didn't expect this invitation, you can safely ignore this email.
-        </p>
-      </body>
-    </html>
-  `;
 }
