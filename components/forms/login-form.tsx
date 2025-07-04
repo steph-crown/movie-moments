@@ -13,6 +13,7 @@ import { login } from "@/app/auth/login/actions";
 import { useDisplayStateError } from "@/hooks/use-display-state-error";
 import { useFormErrorReset } from "@/hooks/use-form-error-reset";
 import { InlineLoader } from "../loaders/inline-loader";
+import { useSearchParams } from "next/navigation";
 
 export function LoginForm({
   className,
@@ -24,6 +25,8 @@ export function LoginForm({
   );
 
   const { displayErrors, clearFieldError } = useFormErrorReset(state.errors);
+  const searchParams = useSearchParams();
+  const roomCode = searchParams.get("roomCode");
 
   // State to preserve form data
   const [formData, setFormData] = useState({
@@ -52,17 +55,26 @@ export function LoginForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <form action={formAction}>
+        {/* Hidden field for room code */}
+        {roomCode && <input type="hidden" name="roomCode" value={roomCode} />}
+
         <div className="flex flex-col gap-6">
           <div className="flex flex-col items-center gap-2">
             <Logo className="mb-5" />
 
             <h1 className="text-xl font-bold text-center">
-              Welcome Back to MovieMoments
+              {roomCode
+                ? "Log in to join the room"
+                : "Welcome Back to MovieMoments"}
             </h1>
             <div className="text-center text-sm">
               Don&apos;t have an account?{" "}
               <Link
-                href="/auth/signup"
+                href={
+                  roomCode
+                    ? `/auth/signup?roomCode=${roomCode}`
+                    : "/auth/signup"
+                }
                 className="underline underline-offset-4 "
               >
                 Sign up
@@ -118,7 +130,8 @@ export function LoginForm({
             </div>
 
             <Button type="submit" className="w-full">
-              Login {isPending && <InlineLoader />}
+              {roomCode ? "Log in & Join Room" : "Login"}{" "}
+              {isPending && <InlineLoader />}
             </Button>
           </div>
 

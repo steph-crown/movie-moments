@@ -370,6 +370,10 @@ async function sendResendInvitationEmail({
     const roomUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/${roomCode}`;
     const greeting = username ? `@${username}` : "there";
     const actionText = isExistingUser ? "Join Room" : "Sign Up & Join";
+    // const actionText = isExistingUser ? "Join Room" : "Create Account & Join";
+    const actionUrl = isExistingUser
+      ? roomUrl
+      : `${process.env.NEXT_PUBLIC_SITE_URL}/auth/signup?roomCode=${roomCode}`;
 
     const { data, error } = await resend.emails.send({
       // from: "MovieMoments <noreply@moviemoments.com>", // Replace with your verified domain
@@ -409,7 +413,7 @@ async function sendResendInvitationEmail({
               </p>
 
               <div style="text-align: center; margin: 32px 0;">
-                <a href="${roomUrl}" style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                <a href="${actionUrl}" style="display: inline-block; background: #6366f1; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
                   ${actionText}
                 </a>
               </div>

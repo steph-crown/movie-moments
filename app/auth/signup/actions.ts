@@ -15,6 +15,7 @@ export async function signup(prevState: IFormState, formData: FormData) {
   const password = formData.get("password") as string;
   const displayName = formData.get("name") as string;
   const username = formData.get("username") as string;
+  const roomCode = formData.get("roomCode") as string; // Hidden field from form
 
   // Validation
   const errors: Record<string, string> = {};
@@ -87,5 +88,10 @@ export async function signup(prevState: IFormState, formData: FormData) {
   }
 
   revalidatePath("/rooms", "layout");
-  redirect("/rooms");
+
+  if (roomCode) {
+    redirect(`/${roomCode}`);
+  } else {
+    redirect("/rooms");
+  }
 }

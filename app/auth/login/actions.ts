@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import validator from "validator";
-
 import { createClient } from "@/lib/supabase/server";
 import { IFormState } from "@/interfaces/form.interface";
 
@@ -15,6 +14,7 @@ export async function login(
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const roomCode = formData.get("roomCode") as string; // Hidden field from form
 
   // Validation
   const errors: Record<string, string> = {};
@@ -85,7 +85,13 @@ export async function login(
   }
 
   revalidatePath("/rooms", "layout");
-  redirect("/rooms");
+
+  // If roomCode is provided, redirect to room page
+  if (roomCode) {
+    redirect(`/${roomCode}`);
+  } else {
+    redirect("/rooms");
+  }
 }
 
 export async function logout() {

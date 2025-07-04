@@ -420,27 +420,47 @@ export async function createRoom(
   }
 }
 
-export async function fetchRoomByCode(roomCode: string): Promise<{
+export async function fetchRoomByCode(
+  roomCode: string,
+  options: {
+    requireParticipation?: boolean;
+    includeParticipantStatus?: boolean;
+    allowUnauthenticatedPublic?: boolean;
+  } = {}
+): Promise<{
   success: boolean;
-  data?: IRoom;
+  data?: {
+    room: IRoom;
+    userStatus?: "not_member" | "pending" | "joined" | "left";
+    participantId?: string;
+    isAuthenticated?: boolean;
+  };
   error?: string;
+  requiresAuth?: boolean;
 }> {
   try {
     const supabase = await createClient();
+    const {
+      requireParticipation = true,
+      includeParticipantStatus = false,
+      allowUnauthenticatedPublic = false,
+    } = options;
 
     // Get current user
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
+    // If no user and we don't allow unauthenticated access, return auth required
+    if (!user && !allowUnauthenticatedPublic) {
       return {
         success: false,
-        error: "You must be logged in to view rooms",
+        error: "Authentication required",
+        requiresAuth: true,
       };
     }
 
-    // First get the room basic info
+    // Get room data
     const { data: roomData, error: roomError } = await supabase
       .from("rooms")
       .select(
@@ -483,33 +503,74 @@ export async function fetchRoomByCode(roomCode: string): Promise<{
       .eq("room_code", roomCode)
       .single();
 
+    console.log({ tellme: roomError, roomData });
+
     if (roomError || !roomData) {
+      if (!user) {
+        // ask to login to confirm that they have access to the private room
+        return {
+          success: false,
+          error: "Authentication required",
+          requiresAuth: true,
+        };
+      }
+
       return {
         success: false,
         error: "Room not found",
       };
     }
 
-    // Check if user is a participant in this room
-    const { data: participantData, error: participantError } = await supabase
-      .from("room_participants")
-      .select("status, role, joined_at")
-      .eq("room_id", roomData.id)
-      .eq("user_id", user.id)
-      .single();
-
-    console.log({ participantError, participantData });
-
-    if (participantError || !participantData) {
+    // If no user but room is private, require auth
+    if (!user && roomData.privacy_level === "private") {
       return {
         success: false,
-        error: "You are not a member of this room",
+        error: "Authentication required",
+        requiresAuth: true,
       };
     }
 
-    const cachedContent = roomData.content_cache as any;
+    let userStatus: "not_member" | "pending" | "joined" | "left" = "not_member";
+    let participantId: string | undefined;
+    let participantData: any = null; // Declare here so it's accessible in the room object
 
-    // Transform to IRoom format
+    // Only check participation if user is authenticated
+    if (user) {
+      const { data: fetchedParticipantData } = await supabase
+        .from("room_participants")
+        .select("id, status, role, joined_at")
+        .eq("room_id", roomData.id)
+        .eq("user_id", user.id)
+        .single();
+
+      participantData = fetchedParticipantData; // Assign to the outer variable
+
+      if (participantData) {
+        userStatus = participantData.status as "pending" | "joined" | "left";
+        participantId = participantData.id;
+      }
+
+      // Check access requirements
+      if (requireParticipation) {
+        const isCreator = roomData.creator_id === user.id;
+        const isJoinedParticipant =
+          participantData && participantData.status === "joined";
+
+        if (!isCreator && !isJoinedParticipant) {
+          if (includeParticipantStatus) {
+            // Don't return error, just include status for access control logic
+          } else {
+            return {
+              success: false,
+              error: "You are not a member of this room",
+            };
+          }
+        }
+      }
+    }
+
+    // Transform room data
+    const cachedContent = roomData.content_cache as any;
     const room: IRoom = {
       id: roomData.id,
       room_code: roomData.room_code,
@@ -563,27 +624,89 @@ export async function fetchRoomByCode(roomCode: string): Promise<{
         display_name: "User",
       },
       invitation_status:
-        participantData.status === "pending"
+        user && participantData?.status === "pending"
           ? "pending"
-          : participantData.status === "joined"
+          : user && participantData?.status === "joined"
             ? "accepted"
             : undefined,
       invited_at:
-        participantData.status === "pending"
+        user && participantData?.status === "pending"
           ? participantData.joined_at
           : undefined,
     };
 
+    const result: {
+      room: IRoom;
+      userStatus?: "not_member" | "pending" | "joined" | "left";
+      participantId?: string;
+      isAuthenticated?: boolean;
+    } = {
+      room,
+      isAuthenticated: !!user,
+    };
+
+    if (includeParticipantStatus) {
+      result.userStatus = userStatus;
+      result.participantId = participantId;
+    }
+
     return {
       success: true,
-      data: room,
+      data: result,
     };
   } catch (error) {
-    console.error("Fetch room error:", error);
+    console.error("Error in fetchRoomByCode:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to fetch room",
     };
+  }
+}
+
+export async function checkUserRoomAccess(roomCode: string): Promise<{
+  success: boolean;
+  data?: {
+    room: IRoom;
+    userStatus: "not_member" | "pending" | "joined" | "left";
+    participantId?: string;
+  };
+  error?: string;
+  requiresAuth?: boolean;
+}> {
+  try {
+    const result = await fetchRoomByCode(roomCode, {
+      requireParticipation: false, // Don't require participation
+      includeParticipantStatus: true, // Include status for access control
+    });
+
+    console.log({ truth: result });
+
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+        requiresAuth: result.requiresAuth,
+      };
+    }
+
+    if (!result.data?.userStatus) {
+      return {
+        success: false,
+        error: "Failed to determine user status",
+      };
+    }
+
+    return {
+      success: true,
+      data: {
+        room: result.data.room,
+        userStatus: result.data.userStatus,
+        participantId: result.data.participantId,
+      },
+    };
+  } catch (error) {
+    console.error("Error in checkUserRoomAccess:", error);
+    return { success: false, error: "An unexpected error occurred" };
   }
 }
 
@@ -726,6 +849,101 @@ export async function getRoomParticipants(roomId: string): Promise<{
     return { success: true, data: transformedParticipants };
   } catch (error) {
     console.error("Error in getRoomParticipants:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function joinRoom(roomId: string): Promise<{
+  success: boolean;
+  message?: string;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "You must be logged in to join a room" };
+    }
+
+    // Check if room exists and get basic info
+    const { data: room, error: roomError } = await supabase
+      .from("rooms")
+      .select("id, title, privacy_level, creator_id")
+      .eq("id", roomId)
+      .single();
+
+    if (roomError || !room) {
+      return { success: false, error: "Room not found" };
+    }
+
+    // Check if user is already a participant
+    const { data: existingParticipant, error: participantError } =
+      await supabase
+        .from("room_participants")
+        .select("id, status, role")
+        .eq("room_id", roomId)
+        .eq("user_id", user.id)
+        .single();
+
+    if (participantError && participantError.code !== "PGRST116") {
+      console.error("Error checking existing participant:", participantError);
+      return { success: false, error: "Failed to check participation status" };
+    }
+
+    if (existingParticipant) {
+      // User already exists, update their status to joined
+      const { error: updateError } = await supabase
+        .from("room_participants")
+        .update({
+          status: "joined",
+          joined_at: new Date().toISOString(),
+          last_seen: new Date().toISOString(),
+        })
+        .eq("id", existingParticipant.id);
+
+      if (updateError) {
+        console.error("Error updating participant status:", updateError);
+        return { success: false, error: "Failed to join room" };
+      }
+
+      return {
+        success: true,
+        message:
+          existingParticipant.status === "pending"
+            ? "Successfully joined the room!"
+            : "Welcome back to the room!",
+      };
+    } else {
+      // User doesn't exist as participant, create new entry
+      const { error: insertError } = await supabase
+        .from("room_participants")
+        .insert({
+          room_id: roomId,
+          user_id: user.id,
+          status: "joined",
+          role: "member",
+          join_method: "public_link",
+          joined_at: new Date().toISOString(),
+          last_seen: new Date().toISOString(),
+          current_season: null,
+          current_episode: null,
+          playback_timestamp: 0,
+        });
+
+      if (insertError) {
+        console.error("Error creating participant:", insertError);
+        return { success: false, error: "Failed to join room" };
+      }
+
+      return { success: true, message: "Successfully joined the room!" };
+    }
+  } catch (error) {
+    console.error("Error in joinRoom:", error);
     return { success: false, error: "An unexpected error occurred" };
   }
 }

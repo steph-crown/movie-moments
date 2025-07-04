@@ -13,6 +13,7 @@ import { GoogleSignInBtn } from "../btns/google-sign-in-btn";
 import { InlineLoader } from "../loaders/inline-loader";
 import { Logo } from "../logo";
 import { Button } from "../ui/button";
+import { useSearchParams } from "next/navigation";
 
 export function SignupForm({
   className,
@@ -22,6 +23,9 @@ export function SignupForm({
     signup,
     INITIAL_FORM_ACTION_STATE
   );
+
+  const searchParams = useSearchParams();
+  const roomCode = searchParams.get("roomCode");
 
   const { displayErrors, clearFieldError } = useFormErrorReset(state.errors);
 
@@ -60,13 +64,22 @@ export function SignupForm({
           <div className="flex flex-col items-center gap-2">
             <Logo className="mb-5" />
 
+            {roomCode && (
+              <input type="hidden" name="roomCode" value={roomCode} />
+            )}
+
             <h1 className="text-xl font-bold text-center">
-              Share movie moments with friends
+              {roomCode
+                ? "Sign up to join the room"
+                : "Share movie moments with friends"}
             </h1>
+
             <div className="text-center text-sm">
               Already have an account?{" "}
               <Link
-                href="/auth/login"
+                href={
+                  roomCode ? `/auth/login?roomCode=${roomCode}` : "/auth/login"
+                }
                 className="underline underline-offset-4 "
               >
                 Log in
@@ -148,7 +161,7 @@ export function SignupForm({
             </div>
 
             <Button type="submit" className="w-full">
-              Sign up
+              {roomCode ? "Sign up & Join Room" : "Sign up"}
               {isPending && <InlineLoader />}
             </Button>
           </div>
