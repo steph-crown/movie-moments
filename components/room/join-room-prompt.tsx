@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Users, Lock, Globe } from "lucide-react";
 import { IRoom, ParticipantStatus } from "@/interfaces/room.interface";
 import { joinRoom } from "@/lib/actions/rooms";
+import { Lock, Users } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface JoinRoomPromptProps {
@@ -72,10 +72,8 @@ export function JoinRoomPrompt({
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h3 className="font-medium">{room.title}</h3>
-              {room.privacy_level === "private" ? (
+              {room.privacy_level === "private" && (
                 <Lock className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <Globe className="h-4 w-4 text-muted-foreground" />
               )}
             </div>
             <p className="text-sm text-muted-foreground">{getPromptText()}</p>
