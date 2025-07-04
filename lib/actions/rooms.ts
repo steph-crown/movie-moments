@@ -4,7 +4,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { generateRoomCode } from "@/lib/room-utils";
 import { revalidatePath } from "next/cache";
-import { CreateRoomData, IRoom } from "@/interfaces/room.interface";
+import {
+  CreateRoomData,
+  IRoom,
+  RoomParticipant,
+} from "@/interfaces/room.interface";
 
 export type RoomFilter = "all" | "created" | "joined" | "invited";
 export type RoomSort = "last_updated" | "date_created" | "alphabetical";
@@ -203,8 +207,8 @@ export async function fetchUserRooms({
           item.status === "pending"
             ? "pending"
             : item.status === "joined"
-            ? "accepted"
-            : undefined,
+              ? "accepted"
+              : undefined,
         invited_at: item.status === "pending" ? item.joined_at : undefined,
       };
     });
@@ -562,8 +566,8 @@ export async function fetchRoomByCode(roomCode: string): Promise<{
         participantData.status === "pending"
           ? "pending"
           : participantData.status === "joined"
-          ? "accepted"
-          : undefined,
+            ? "accepted"
+            : undefined,
       invited_at:
         participantData.status === "pending"
           ? participantData.joined_at
@@ -580,5 +584,148 @@ export async function fetchRoomByCode(roomCode: string): Promise<{
       success: false,
       error: error instanceof Error ? error.message : "Failed to fetch room",
     };
+  }
+}
+
+export async function getRoomParticipants(roomId: string): Promise<{
+  success: boolean;
+  data?: RoomParticipant[];
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user to check permissions
+    const {
+      data: { user: currentUser },
+    } = await supabase.auth.getUser();
+
+    if (!currentUser) {
+      return {
+        success: false,
+        error: "You must be logged in to view participants",
+      };
+    }
+
+    // Check if user has access to this room (is a participant or creator)
+    const { data: userParticipation, error: participationError } =
+      await supabase
+        .from("room_participants")
+        .select("status, role")
+        .eq("room_id", roomId)
+        .eq("user_id", currentUser.id)
+        .single();
+
+    if (participationError && participationError.code !== "PGRST116") {
+      console.error("Error checking user participation:", participationError);
+      return { success: false, error: "Failed to verify room access" };
+    }
+
+    // Also check if user is the room creator
+    const { data: room, error: roomError } = await supabase
+      .from("rooms")
+      .select("creator_id")
+      .eq("id", roomId)
+      .single();
+
+    if (roomError) {
+      console.error("Error checking room creator:", roomError);
+      return { success: false, error: "Failed to verify room access" };
+    }
+
+    const isCreator = room.creator_id === currentUser.id;
+    const isParticipant =
+      userParticipation && userParticipation.status === "joined";
+
+    if (!isCreator && !isParticipant) {
+      return {
+        success: false,
+        error: "You don't have access to view this room's participants",
+      };
+    }
+
+    // Get all participants first
+    const { data: participants, error: participantsError } = await supabase
+      .from("room_participants")
+      .select(
+        `
+        id,
+        user_id,
+        email,
+        username,
+        status,
+        role,
+        join_method,
+        joined_at,
+        last_seen,
+        current_season,
+        current_episode,
+        playback_timestamp,
+        position_updated_at
+      `
+      )
+      .eq("room_id", roomId)
+      .order("role", { ascending: false }) // Creators first
+      .order("joined_at", { ascending: true }); // Then by join time
+
+    if (participantsError) {
+      console.error("Error fetching room participants:", participantsError);
+      return { success: false, error: "Failed to fetch participants" };
+    }
+
+    // Get profile data for participants who have user_id
+    const userIds = participants.filter((p) => p.user_id).map((p) => p.user_id);
+
+    let profiles: any[] = [];
+    if (userIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, display_name, username, avatar_url")
+        .in("id", userIds);
+
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        // Continue without profiles rather than failing completely
+      } else {
+        profiles = profilesData || [];
+      }
+    }
+
+    // Transform the data to match our interface
+    const transformedParticipants: RoomParticipant[] = participants.map(
+      (participant: any) => {
+        const profile = participant.user_id
+          ? profiles.find((p) => p.id === participant.user_id)
+          : null;
+
+        return {
+          id: participant.id,
+          user_id: participant.user_id,
+          email: participant.email,
+          username: participant.username,
+          status: participant.status,
+          role: participant.role,
+          join_method: participant.join_method,
+          joined_at: participant.joined_at,
+          last_seen: participant.last_seen,
+          current_season: participant.current_season,
+          current_episode: participant.current_episode,
+          playback_timestamp: participant.playback_timestamp,
+          position_updated_at: participant.position_updated_at,
+          profile: profile
+            ? {
+                display_name: profile.display_name,
+                username: profile.username,
+                avatar_url: profile.avatar_url,
+              }
+            : null,
+        };
+      }
+    );
+
+    return { success: true, data: transformedParticipants };
+  } catch (error) {
+    console.error("Error in getRoomParticipants:", error);
+    return { success: false, error: "An unexpected error occurred" };
   }
 }

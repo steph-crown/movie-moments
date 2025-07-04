@@ -1,71 +1,61 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+import { IRoom, RoomParticipant } from "@/interfaces/room.interface";
+import { getRoomParticipants } from "@/lib/actions/rooms";
 import {
-  Info,
-  Users,
-  Lock,
-  Globe,
+  Check,
+  Copy,
+  Crown,
   Eye,
   EyeOff,
-  Copy,
-  Check,
-  Crown,
+  Globe,
+  Info,
+  Lock,
+  Users,
 } from "lucide-react";
-import { useState } from "react";
-import { Button } from "../ui/button";
+import { useEffect, useState } from "react";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Separator } from "../ui/separator";
 import {
   Sheet,
   SheetContent,
-  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
 } from "../ui/sheet";
-import { IRoom } from "@/interfaces/room.interface";
-
-// Mock member data - replace with actual data
-const mockMembers = [
-  {
-    id: "1",
-    name: "Sarah Johnson",
-    username: "sarah_movie_fan",
-    isCreator: true,
-    position: "S1E1 24:30",
-    isOnline: true,
-  },
-  {
-    id: "2",
-    name: "Mike Films",
-    username: "mike_films",
-    isCreator: false,
-    position: "S1E1 24:25",
-    isOnline: true,
-  },
-  {
-    id: "3",
-    name: "Jenny Cinema",
-    username: "jenny_cinema",
-    isCreator: false,
-    position: "S1E1 22:15",
-    isOnline: false,
-  },
-  {
-    id: "4",
-    name: "Alex Reviews",
-    username: "alex_reviews",
-    isCreator: false,
-    position: "S1E1 26:45",
-    isOnline: true,
-  },
-];
 
 export function RoomInfo({ room }: { room: IRoom }) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [participants, setParticipants] = useState<RoomParticipant[]>([]);
+  const [isLoadingParticipants, setIsLoadingParticipants] = useState(false);
 
-  const roomLink = `${process.env.NEXT_PUBLIC_SITE_URL}/${room.room_code}`;
+  const roomLink = `${typeof window !== "undefined" ? window.location.hostname : "moviemoments.com"}/${room.room_code}`;
+
+  // Fetch participants when sheet opens
+  useEffect(() => {
+    if (isOpen && participants.length === 0) {
+      fetchParticipants();
+    }
+  }, [isOpen]);
+
+  const fetchParticipants = async () => {
+    setIsLoadingParticipants(true);
+    try {
+      const result = await getRoomParticipants(room.id);
+      if (result.success && result.data) {
+        setParticipants(result.data);
+      } else {
+        console.error("Failed to fetch participants:", result.error);
+      }
+    } catch (error) {
+      console.error("Error fetching participants:", error);
+    } finally {
+      setIsLoadingParticipants(false);
+    }
+  };
 
   const copyLink = async () => {
     try {
@@ -103,8 +93,55 @@ export function RoomInfo({ room }: { room: IRoom }) {
     }
   };
 
-  const onlineMembers = mockMembers.filter((member) => member.isOnline);
-  const offlineMembers = mockMembers.filter((member) => !member.isOnline);
+  const formatPosition = (participant: RoomParticipant) => {
+    if (room.content.content_type === "series") {
+      if (participant.current_season && participant.current_episode) {
+        const timestamp = participant.playback_timestamp
+          ? `${Math.floor(participant.playback_timestamp / 60)}:${(participant.playback_timestamp % 60).toString().padStart(2, "0")}`
+          : "0:00";
+        return `S${participant.current_season}E${participant.current_episode} ${timestamp}`;
+      }
+      return "Not started";
+    } else {
+      // Movie
+      if (participant.playback_timestamp) {
+        const minutes = Math.floor(participant.playback_timestamp / 60);
+        const seconds = participant.playback_timestamp % 60;
+        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+      }
+      return "0:00";
+    }
+  };
+
+  const getDisplayName = (participant: RoomParticipant) => {
+    return (
+      participant.profile?.display_name ||
+      participant.profile?.username ||
+      participant.username ||
+      participant.email ||
+      "Unknown User"
+    );
+  };
+
+  const getUsername = (participant: RoomParticipant) => {
+    return participant.profile?.username || participant.username;
+  };
+
+  const isOnline = (participant: RoomParticipant) => {
+    if (!participant.last_seen) return false;
+    const lastSeen = new Date(participant.last_seen);
+    const now = new Date();
+    const diffMinutes = (now.getTime() - lastSeen.getTime()) / (1000 * 60);
+    return diffMinutes < 5; // Consider online if active within 5 minutes
+  };
+
+  // Separate participants by status and online state
+  const joinedParticipants = participants.filter((p) => p.status === "joined");
+  const pendingParticipants = participants.filter(
+    (p) => p.status === "pending"
+  );
+  const onlineParticipants = joinedParticipants.filter(isOnline);
+  const offlineParticipants = joinedParticipants.filter((p) => !isOnline(p));
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -117,20 +154,24 @@ export function RoomInfo({ room }: { room: IRoom }) {
 
       <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto p-6 flex flex-col">
         <SheetHeader>
-          <SheetTitle className="text-left">{room.title}</SheetTitle>
-          <SheetDescription className="text-left">
+          <SheetTitle className="text-left flex items-center gap-1">
+            {room.title}{" "}
+            {room.privacy_level === "private" && (
+              <Lock className="h-3.5 text-ring shrink-0" />
+            )}
+          </SheetTitle>
+
+          {/* <SheetDescription className="text-left flex items-center gap-1 font-medium text-sm">
+            <Film className="h-5 w-5" />
+
             {room.content.title}
-          </SheetDescription>
+          </SheetDescription> */}
         </SheetHeader>
 
         <div className="flex flex-col flex-1 gap-6 mt-6">
           {/* Room Details */}
           <div className="grid gap-4">
-            <div className="flex items-center gap-2">
-              <h3 className="text-lg font-semibold">Room Details</h3>
-            </div>
-
-            <div className="grid gap-3">
+            <div className="grid gap-5">
               {/* Content Type & Title */}
               <div>
                 <Label className="text-sm font-medium text-muted-foreground">
@@ -147,58 +188,62 @@ export function RoomInfo({ room }: { room: IRoom }) {
                 </div>
               </div>
 
-              {/* Platform */}
-              <div>
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Platform
-                </Label>
-                <div className="mt-1">
-                  <Badge variant="outline">{room.streaming_platform}</Badge>
+              <div className="flex">
+                {/* Platform */}
+                <div className="w-[50%] pr-4">
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Platform
+                  </Label>
+                  <div className="mt-1">
+                    <Badge variant="outline">{room.streaming_platform}</Badge>
+                  </div>
+                </div>
+
+                {/* Privacy Level */}
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Privacy
+                  </Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    {room.privacy_level === "private" ? (
+                      <>
+                        <Lock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Private room</span>
+                      </>
+                    ) : (
+                      <>
+                        <Globe className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm">Public room</span>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              {/* Privacy Level */}
-              <div>
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Privacy
-                </Label>
-                <div className="flex items-center gap-2 mt-1">
-                  {room.privacy_level === "private" ? (
-                    <>
-                      <Lock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Private room</span>
-                    </>
-                  ) : (
-                    <>
-                      <Globe className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">Public room</span>
-                    </>
-                  )}
+              <div className="flex">
+                {/* Spoiler Policy */}
+                <div className="w-1/2 pr-4">
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Spoiler Policy
+                  </Label>
+                  <div className="flex items-center gap-2 mt-1">
+                    {getSpoilerPolicyIcon(room.spoiler_policy)}
+                    <span className="text-sm">
+                      {getSpoilerPolicyText(room.spoiler_policy)}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Spoiler Policy */}
-              <div>
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Spoiler Policy
-                </Label>
-                <div className="flex items-center gap-2 mt-1">
-                  {getSpoilerPolicyIcon(room.spoiler_policy)}
-                  <span className="text-sm">
-                    {getSpoilerPolicyText(room.spoiler_policy)}
-                  </span>
-                </div>
-              </div>
-
-              {/* Room Code */}
-              <div>
-                <Label className="text-sm font-medium text-muted-foreground">
-                  Room Code
-                </Label>
-                <div className="mt-1">
-                  <Badge variant="outline" className="font-mono">
-                    {room.room_code}
-                  </Badge>
+                {/* Room Code */}
+                <div>
+                  <Label className="text-sm font-medium text-muted-foreground">
+                    Room Code
+                  </Label>
+                  <div className="mt-1">
+                    <Badge variant="outline" className="font-mono">
+                      {room.room_code}
+                    </Badge>
+                  </div>
                 </div>
               </div>
             </div>
@@ -239,114 +284,190 @@ export function RoomInfo({ room }: { room: IRoom }) {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold">
-                Members ({mockMembers.length})
+                Members ({participants.length})
               </h3>
+              {isLoadingParticipants && (
+                <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+              )}
             </div>
 
-            {/* Online Members */}
-            {onlineMembers.length > 0 && (
-              <div className="grid gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                  <Label className="text-sm font-medium text-muted-foreground">
-                    Online ({onlineMembers.length})
-                  </Label>
-                </div>
-                <div className="grid gap-2">
-                  {onlineMembers.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium">
-                              {member.name.charAt(0)}
-                            </span>
-                          </div>
-                          {member.isCreator && (
-                            <Crown className="h-4 w-4 text-yellow-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">
-                              {member.name}
-                            </span>
-                            {member.isCreator && (
-                              <Badge variant="secondary" className="text-xs">
-                                Creator
-                              </Badge>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            @{member.username}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs font-mono text-muted-foreground">
-                          {member.position}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+            {isLoadingParticipants ? (
+              <div className="text-center py-4 text-muted-foreground">
+                Loading members...
               </div>
-            )}
+            ) : (
+              <>
+                {/* Online Members */}
+                {onlineParticipants.length > 0 && (
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        Online ({onlineParticipants.length})
+                      </Label>
+                    </div>
+                    <div className="grid gap-2">
+                      {onlineParticipants.map((participant) => (
+                        <div
+                          key={participant.id}
+                          className="flex items-center justify-between p-3 border rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                <span className="text-sm font-medium">
+                                  {getDisplayName(participant)
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </span>
+                              </div>
+                              {participant.role === "creator" && (
+                                <Crown className="h-4 w-4 text-yellow-500" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">
+                                  {getDisplayName(participant)}
+                                </span>
+                                {participant.role === "creator" && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    Creator
+                                  </Badge>
+                                )}
+                              </div>
+                              {getUsername(participant) && (
+                                <span className="text-xs text-muted-foreground">
+                                  @{getUsername(participant)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-mono text-muted-foreground">
+                              {formatPosition(participant)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {/* Offline Members */}
-            {offlineMembers.length > 0 && (
-              <div className="grid gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
-                  <Label className="text-sm font-medium text-muted-foreground">
-                    Offline ({offlineMembers.length})
-                  </Label>
-                </div>
-                <div className="grid gap-2">
-                  {offlineMembers.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center justify-between p-3 border rounded-lg opacity-60"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-2">
-                          <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
-                            <span className="text-sm font-medium">
-                              {member.name.charAt(0)}
-                            </span>
-                          </div>
-                          {member.isCreator && (
-                            <Crown className="h-4 w-4 text-yellow-500" />
-                          )}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">
-                              {member.name}
-                            </span>
-                            {member.isCreator && (
-                              <Badge variant="secondary" className="text-xs">
-                                Creator
-                              </Badge>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            @{member.username}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-xs font-mono text-muted-foreground">
-                          {member.position}
-                        </div>
-                      </div>
+                {/* Offline Members */}
+                {offlineParticipants.length > 0 && (
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-gray-400 rounded-full"></div>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        Offline ({offlineParticipants.length})
+                      </Label>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <div className="grid gap-2">
+                      {offlineParticipants.map((participant) => (
+                        <div
+                          key={participant.id}
+                          className="flex items-center justify-between p-3 border rounded-lg opacity-60"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
+                              <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
+                                <span className="text-sm font-medium">
+                                  {getDisplayName(participant)
+                                    .charAt(0)
+                                    .toUpperCase()}
+                                </span>
+                              </div>
+                              {participant.role === "creator" && (
+                                <Crown className="h-4 w-4 text-yellow-500" />
+                              )}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">
+                                  {getDisplayName(participant)}
+                                </span>
+                                {participant.role === "creator" && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-xs"
+                                  >
+                                    Creator
+                                  </Badge>
+                                )}
+                              </div>
+                              {getUsername(participant) && (
+                                <span className="text-xs text-muted-foreground">
+                                  @{getUsername(participant)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-xs font-mono text-muted-foreground">
+                              {formatPosition(participant)}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Pending Members */}
+                {pendingParticipants.length > 0 && (
+                  <div className="grid gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
+                      <Label className="text-sm font-medium text-muted-foreground">
+                        Pending ({pendingParticipants.length})
+                      </Label>
+                    </div>
+                    <div className="grid gap-2">
+                      {pendingParticipants.map((participant) => (
+                        <div
+                          key={participant.id}
+                          className="flex items-center justify-between p-3 border border-dashed rounded-lg opacity-75"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                              <span className="text-sm font-medium text-yellow-600">
+                                {getDisplayName(participant)
+                                  .charAt(0)
+                                  .toUpperCase()}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium">
+                                {getDisplayName(participant)}
+                              </span>
+                              {getUsername(participant) && (
+                                <div className="text-xs text-muted-foreground">
+                                  @{getUsername(participant)}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-xs">
+                            Invited
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {participants.length === 0 && !isLoadingParticipants && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p>No members found</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>

@@ -69,6 +69,28 @@ export interface ParticipantPreview {
   current_timestamp?: number;
 }
 
+export interface RoomParticipant {
+  id: string;
+  user_id: string | null;
+  email: string | null;
+  username: string | null;
+  status: "pending" | "joined";
+  role: "creator" | "member";
+  join_method: "created" | "invited_email" | "invited_username" | "public_link";
+  joined_at: string | null;
+  last_seen: string | null;
+  current_season: number | null;
+  current_episode: number | null;
+  playback_timestamp: number | null;
+  position_updated_at: string | null;
+  // Profile data from join
+  profile?: {
+    display_name: string | null;
+    username: string | null;
+    avatar_url: string | null;
+  } | null;
+}
+
 export interface CreateRoomData {
   title: string;
   content_tmdb_id: number;
