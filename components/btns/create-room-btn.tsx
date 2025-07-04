@@ -3,6 +3,7 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useContentSearch } from "@/hooks/use-content-search";
+import { useToast } from "@/hooks/use-toast";
 import {
   ContentTypeEnum,
   CreateRoomData,
@@ -11,13 +12,15 @@ import {
 import { SearchResult } from "@/interfaces/tmdb.interface";
 import { createRoom } from "@/lib/actions/rooms";
 import { zodResolver } from "@hookform/resolvers/zod";
+import clsx from "clsx";
 import { Edit2, Plus, Search } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+import { InlineLoader } from "../loaders/inline-loader";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import {
@@ -48,10 +51,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { IconCirclePlusFilled } from "@tabler/icons-react";
-import clsx from "clsx";
-import { InlineLoader } from "../loaders/inline-loader";
-import { useToast } from "@/hooks/use-toast";
 
 const STREAMING_PLATFORMS: StreamingPlatform[] = [
   "Netflix",
@@ -94,7 +93,13 @@ const FormSchema = z.object({
 type FormData = z.infer<typeof FormSchema>;
 type Step = "type" | "search" | "details";
 
-export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
+export function CreateRoomBtn({
+  fullWidth,
+  triggerNode,
+}: {
+  fullWidth?: boolean;
+  triggerNode?: ReactNode;
+}) {
   const { showError } = useToast();
   const [step, setStep] = useState<Step>("type");
   const [selectedContent, setSelectedContent] = useState<SearchResult | null>(
@@ -281,31 +286,33 @@ export function CreateRoomBtn({ fullWidth }: { fullWidth?: boolean }) {
         }}
       >
         <DialogTrigger asChild>
-          <div className={clsx(fullWidth && "!w-full")}>
-            <Button
-              size="default"
-              onClick={handleCreateRoomClick}
-              className={clsx(
-                "hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4",
-                fullWidth && "!w-full flex"
-              )}
-            >
-              {/* <Plus /> */}
-              <IconCirclePlusFilled />
-              Create room
-            </Button>
+          {triggerNode || (
+            <div className={clsx(fullWidth && "!w-full")}>
+              <Button
+                size="default"
+                onClick={handleCreateRoomClick}
+                className={clsx(
+                  "hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4",
+                  fullWidth && "!w-full flex"
+                )}
+              >
+                <Plus />
+                {/* <IconCirclePlusFilled /> */}
+                Create room
+              </Button>
 
-            <Button
-              size="icon"
-              onClick={handleCreateRoomClick}
-              className={clsx(
-                "flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4",
-                fullWidth && "!hidden"
-              )}
-            >
-              <Plus />
-            </Button>
-          </div>
+              <Button
+                size="icon"
+                onClick={handleCreateRoomClick}
+                className={clsx(
+                  "flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4",
+                  fullWidth && "!hidden"
+                )}
+              >
+                <Plus />
+              </Button>
+            </div>
+          )}
         </DialogTrigger>
 
         <DialogContent className="sm:max-w-[32.5rem]" fullScreenOnMobile={true}>

@@ -6,6 +6,7 @@ import { JoinRoomPrompt } from "@/components/room/join-room-prompt";
 import { LoginPrompt } from "@/components/room/login-prompt";
 import { MoviePosition } from "@/components/room/movie-position";
 import { RoomHeader } from "@/components/room/room-header";
+import { RoomNotFound } from "@/components/room/room-not-found";
 import { RoomSidebar } from "@/components/room/room-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { IRoom } from "@/interfaces/room.interface";
@@ -87,21 +88,24 @@ export default function Page() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <h1 className="text-2xl font-semibold mb-2">Room Not Found</h1>
-        <p className="text-muted-foreground mb-4">{error}</p>
-      </div>
+      // <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+      //   <h1 className="text-2xl font-semibold mb-2">Room Not Found</h1>
+      //   <p className="text-muted-foreground mb-4">{error}</p>
+      // </div>
+      <RoomNotFound />
     );
   }
 
   if (!room) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <h1 className="text-2xl font-semibold mb-2">Room Not Found</h1>
-        <p className="text-muted-foreground mb-4">
-          The room you&apos;re looking for doesn&apos;t exist.
-        </p>
-      </div>
+      // <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+      //   <h1 className="text-2xl font-semibold mb-2">Room Not Found</h1>
+      //   <p className="text-muted-foreground mb-4">
+      //     The room you&apos;re looking for doesn&apos;t exist.
+      //   </p>
+      // </div>
+
+      <RoomNotFound />
     );
   }
 
