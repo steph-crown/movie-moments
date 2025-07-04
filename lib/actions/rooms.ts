@@ -731,41 +731,41 @@ export async function getRoomParticipants(roomId: string): Promise<{
     }
 
     // Check if user has access to this room (is a participant or creator)
-    const { data: userParticipation, error: participationError } =
-      await supabase
-        .from("room_participants")
-        .select("status, role")
-        .eq("room_id", roomId)
-        .eq("user_id", currentUser.id)
-        .single();
+    // const { data: userParticipation, error: participationError } =
+    //   await supabase
+    //     .from("room_participants")
+    //     .select("status, role")
+    //     .eq("room_id", roomId)
+    //     .eq("user_id", currentUser.id)
+    //     .single();
 
-    if (participationError && participationError.code !== "PGRST116") {
-      console.error("Error checking user participation:", participationError);
-      return { success: false, error: "Failed to verify room access" };
-    }
+    // if (participationError && participationError.code !== "PGRST116") {
+    //   console.error("Error checking user participation:", participationError);
+    //   return { success: false, error: "Failed to verify room access" };
+    // }
 
     // Also check if user is the room creator
-    const { data: room, error: roomError } = await supabase
-      .from("rooms")
-      .select("creator_id")
-      .eq("id", roomId)
-      .single();
+    // const { data: room, error: roomError } = await supabase
+    //   .from("rooms")
+    //   .select("creator_id")
+    //   .eq("id", roomId)
+    //   .single();
 
-    if (roomError) {
-      console.error("Error checking room creator:", roomError);
-      return { success: false, error: "Failed to verify room access" };
-    }
+    // if (roomError) {
+    //   console.error("Error checking room creator:", roomError);
+    //   return { success: false, error: "Failed to verify room access" };
+    // }
 
-    const isCreator = room.creator_id === currentUser.id;
-    const isParticipant =
-      userParticipation && userParticipation.status === "joined";
+    // const isCreator = room.creator_id === currentUser.id;
+    // const isParticipant =
+    //   userParticipation && userParticipation.status === "joined";
 
-    if (!isCreator && !isParticipant) {
-      return {
-        success: false,
-        error: "You don't have access to view this room's participants",
-      };
-    }
+    // if (!isCreator && !isParticipant) {
+    //   return {
+    //     success: false,
+    //     error: "You don't have access to view this room's participants",
+    //   };
+    // }
 
     // Get all participants first
     const { data: participants, error: participantsError } = await supabase
