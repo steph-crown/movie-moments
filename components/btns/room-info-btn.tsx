@@ -65,11 +65,7 @@ export function RoomInfo({ room }: { room: IRoom }) {
   const [linkCopied, setLinkCopied] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
-  const roomLink = `${
-    typeof window !== "undefined"
-      ? window.location.hostname
-      : "moviemoments.com"
-  }/${room.room_code}`;
+  const roomLink = `${process.env.NEXT_PUBLIC_SITE_URL}/${room.room_code}`;
 
   const copyLink = async () => {
     try {

@@ -494,6 +494,8 @@ export async function fetchRoomByCode(roomCode: string): Promise<{
       .eq("user_id", user.id)
       .single();
 
+    console.log({ participantError, participantData });
+
     if (participantError || !participantData) {
       return {
         success: false,

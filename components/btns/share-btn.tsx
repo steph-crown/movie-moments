@@ -1,4 +1,6 @@
 import { IRoom } from "@/interfaces/room.interface";
+import { sendRoomInvitations } from "@/lib/actions/invitations";
+import { searchUsersByUsername } from "@/lib/actions/users";
 import { IconShare3 } from "@tabler/icons-react";
 import clsx from "clsx";
 import { Check, Copy, Mail, User2, X } from "lucide-react";
@@ -29,15 +31,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-
-// Mock data for username search - replace with actual API call
-const mockUsers = [
-  { id: 1, username: "moviebuff23", displayName: "Movie Buff" },
-  { id: 2, username: "cinephile_sarah", displayName: "Sarah Cinema" },
-  { id: 3, username: "film_lover", displayName: "Film Lover" },
-  { id: 4, username: "netflix_addict", displayName: "Netflix Addict" },
-  { id: 5, username: "horror_fan", displayName: "Horror Fan" },
-];
+import { InlineLoader } from "../loaders/inline-loader";
 
 interface InviteItem {
   id: string;
@@ -54,18 +48,23 @@ export function ShareBtn({ room }: { room: IRoom }) {
   const [inviteItems, setInviteItems] = useState<InviteItem[]>([]);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showUsernameSuggestions, setShowUsernameSuggestions] = useState(false);
-  const [usernameSuggestions, setUsernameSuggestions] = useState(mockUsers);
+  // const [usernameSuggestions, setUsernameSuggestions] = useState(mockUsers);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [usernameSuggestions, setUsernameSuggestions] = useState<
+    Array<{
+      id: string;
+      username: string;
+      display_name: string;
+      avatar_url?: string;
+    }>
+  >([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const roomLink = `${
-    typeof window !== "undefined"
-      ? window.location.hostname
-      : "moviemoments.com"
-  }/${roomCode}`;
+  const roomLink = `${process.env.NEXT_PUBLIC_SITE_URL}/${roomCode}`;
 
   const form = useForm({
     defaultValues: {
@@ -130,23 +129,24 @@ export function ShareBtn({ room }: { room: IRoom }) {
     setInviteItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const handleInputChange = (value: string) => {
+  const handleInputChange = async (value: string) => {
     setCurrentInput(value);
 
     // Show username suggestions if input starts with @
     if (value.startsWith("@") && value.length > 1) {
-      const query = value.slice(1).toLowerCase();
-      const filtered = mockUsers
-        .filter(
-          (user) =>
-            user.username.toLowerCase().includes(query) ||
-            user.displayName.toLowerCase().includes(query)
-        )
-        .slice(0, 10);
-      setUsernameSuggestions(filtered);
-      setShowUsernameSuggestions(true);
+      const query = value.slice(1);
+      const result = await searchUsersByUsername(query);
+
+      if (result.success && result.data) {
+        setUsernameSuggestions(result.data);
+        setShowUsernameSuggestions(true);
+      } else {
+        setUsernameSuggestions([]);
+        setShowUsernameSuggestions(false);
+      }
     } else {
       setShowUsernameSuggestions(false);
+      setUsernameSuggestions([]);
     }
   };
 
@@ -188,7 +188,6 @@ export function ShareBtn({ room }: { room: IRoom }) {
     const invalidItems = inviteItems.filter((item) => !item.isValid);
 
     if (invalidItems.length > 0) {
-      // Show error toast or you could use form.setError if you prefer
       toast.error("Please fix invalid entries", {
         description:
           "Remove the entries shown in red before sending invitations.",
@@ -208,23 +207,31 @@ export function ShareBtn({ room }: { room: IRoom }) {
       .map((item) => item.value);
 
     try {
-      // TODO: Implement actual invitation API call
-      console.log("Sending invitations:", {
+      const result = await sendRoomInvitations({
+        roomId: room.id,
         emails,
         usernames,
         personalMessage: formData.personalMessage,
-        roomCode,
-        roomTitle,
+        roomTitle: room.title,
+        roomCode: room.room_code,
       });
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Success - close modal and reset
-      setIsOpen(false);
-      resetForm();
-    } catch (error) {
-      console.error("Failed to send invitations:", error);
+      if (result.success) {
+        toast.success("Invitations sent!", {
+          description: result.message,
+        });
+        // Success - close modal and reset
+        setIsOpen(false);
+        resetForm();
+      } else {
+        toast.error("Failed to send invitations", {
+          description: result.error,
+        });
+      }
+    } catch {
+      toast.error("Something went wrong", {
+        description: "Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -327,7 +334,7 @@ export function ShareBtn({ room }: { room: IRoom }) {
                       <div>
                         <p className="font-medium text-sm">@{user.username}</p>
                         <p className="text-xs text-muted-foreground">
-                          {user.displayName}
+                          {user.display_name}
                         </p>
                       </div>
                     </button>
@@ -404,6 +411,8 @@ export function ShareBtn({ room }: { room: IRoom }) {
             onClick={handleSubmit}
             disabled={!hasValidInvites || isSubmitting}
           >
+            {isSubmitting && <InlineLoader />}
+
             {isSubmitting ? "Sending..." : "Send Invitations"}
           </Button>
         </DialogFooter>
