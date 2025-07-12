@@ -49,6 +49,14 @@ function MessageItem({
   const [showActions, setShowActions] = useState(false);
   const [reactingWith, setReactingWith] = useState<string | null>(null);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const { user } = useAuth();
+
+  const getPositionIcon = () => {
+    if (room.content.content_type === "series") {
+      return "📺"; // TV emoji for series
+    }
+    return "🎬"; // Movie camera emoji for movies
+  };
 
   const formatTimestamp = (timestamp?: number | null) => {
     if (!timestamp) return "";
@@ -158,7 +166,7 @@ function MessageItem({
             >
               <Reply className="h-3 w-3" />
               <span className="font-medium">
-                {parentMessage.user_id === message.user_id
+                {parentMessage.user_id === user?.id
                   ? "You"
                   : parentMessage.user.display_name}
               </span>
@@ -198,26 +206,28 @@ function MessageItem({
             className={clsx(
               "rounded-2xl px-4 py-2 relative max-w-full transition-all",
               isOwnMessage
-                ? "bg-primary text-primary-foreground rounded-br-md"
+                ? "bg-[#c7d2fe]  rounded-br-md"
                 : "bg-muted rounded-bl-md",
               message.thread_depth > 0 && "mt-1",
-              isHighlighted && "ring-8 ring-primary/20 rounded-lg opacity-60"
+              isHighlighted && "ring-8 ring-primary rounded-lg opacity-60"
             )}
           >
             {/* Header for first message in group (others only) */}
             {!isOwnMessage && isFirstInGroup && (
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-2">
                 <span className="font-semibold text-sm">
                   {message.user.display_name}
                 </span>
-                <span className="text-xs opacity-70">
-                  {messageTime.relativeTime}
+                <span className="text-[.6835rem] opacity-70">
+                  {messageTime.timeOnly}
                 </span>
                 {getPositionText() && (
                   <Badge
-                    variant="secondary"
-                    className="text-[10px] px-1.5 py-0 h-auto bg-background/50"
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0 h-auto border-blue-200 bg-blue-50 text-blue-700 flex items-center gap-1"
+                    title={`Viewer position: ${getPositionText()}`}
                   >
+                    <span className="font-medium">{getPositionIcon()}</span>
                     {getPositionText()}
                   </Badge>
                 )}
@@ -226,15 +236,17 @@ function MessageItem({
 
             {/* Own message header */}
             {isOwnMessage && isFirstInGroup && getPositionText() && (
-              <div className="flex items-center justify-end gap-2 mb-1">
+              <div className="flex items-center justify-end gap-2 mb-2">
                 <Badge
-                  variant="secondary"
-                  className="text-[10px] px-1.5 py-0 h-auto bg-primary-foreground/20 text-primary-foreground"
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 h-auto border-blue-500 text-blue-700 flex items-center gap-1"
+                  title={`Your position: ${getPositionText()}`}
                 >
+                  <span className="font-medium">{getPositionIcon()}</span>
                   {getPositionText()}
                 </Badge>
                 <span className="text-xs opacity-70">
-                  {messageTime.relativeTime}
+                  {messageTime.timeOnly}
                 </span>
               </div>
             )}
