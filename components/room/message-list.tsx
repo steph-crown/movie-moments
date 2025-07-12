@@ -3,18 +3,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useAuth } from "@/hooks/use-auth";
 import { IMessage } from "@/interfaces/message.interface";
 import { IRoom } from "@/interfaces/room.interface";
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, MoreHorizontal, Reply, Smile } from "lucide-react";
+import { Loader2, MoreHorizontal, Reply, SmilePlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 
 interface MessageListProps {
   messages: IMessage[];
@@ -32,6 +28,8 @@ interface MessageItemProps {
   onReact?: (messageId: string, emoji: string) => Promise<void>;
   isFirstInGroup?: boolean;
   showAvatar?: boolean;
+  isOwnMessage?: boolean;
+  parentMessage?: IMessage | null;
 }
 
 function MessageItem({
@@ -41,9 +39,12 @@ function MessageItem({
   onReact,
   isFirstInGroup = false,
   showAvatar = true,
+  isOwnMessage = false,
+  parentMessage = null,
 }: MessageItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [reactingWith, setReactingWith] = useState<string | null>(null);
+  const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
 
   const formatTimestamp = (timestamp?: number | null) => {
     if (!timestamp) return "";
@@ -55,6 +56,22 @@ function MessageItem({
       return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
     }
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const formatMessageTime = (utcTimestamp: string) => {
+    const date = new Date(utcTimestamp + "Z");
+    const timeOnly = date.toLocaleTimeString(undefined, {
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    const fullFormat = date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    });
+    const relativeTime = formatDistanceToNow(date, { addSuffix: true });
+    return { fullFormat, timeOnly, relativeTime };
   };
 
   const getPositionText = () => {
@@ -75,6 +92,7 @@ function MessageItem({
     if (!onReact || reactingWith) return;
 
     setReactingWith(emoji);
+    setEmojiPickerOpen(false);
     try {
       await onReact(message.id, emoji);
     } catch (error) {
@@ -84,134 +102,249 @@ function MessageItem({
     }
   };
 
-  const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "😡"];
+  const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "💯"];
+  const messageTime = formatMessageTime(message.created_at);
+
+  // Group reactions by emoji and count them
+  const groupedReactions = message.reactions?.reduce(
+    (acc, reaction) => {
+      if (!acc[reaction.emoji]) {
+        acc[reaction.emoji] = {
+          emoji: reaction.emoji,
+          count: 0,
+          users: [],
+          hasCurrentUser: false,
+        };
+      }
+      acc[reaction.emoji].count++;
+      acc[reaction.emoji].users.push(reaction.user.display_name);
+      return acc;
+    },
+    {} as Record<
+      string,
+      { emoji: string; count: number; users: string[]; hasCurrentUser: boolean }
+    >
+  );
+
+  const reactionArray = groupedReactions ? Object.values(groupedReactions) : [];
 
   return (
     <div
       className={clsx(
-        "group flex gap-3 px-4 py-2 hover:bg-muted/30 transition-colors",
-        message.thread_depth > 0 && "ml-8 border-l-2 border-muted pl-4"
+        "group px-4 py-1 hover:bg-muted/20 transition-colors relative",
+        isOwnMessage ? "flex justify-end" : "flex justify-start"
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
-      {/* Avatar */}
-      <div className="flex-shrink-0">
-        {showAvatar && isFirstInGroup ? (
-          <Avatar className="w-8 h-8">
-            <AvatarImage src={message.user.avatar_url} />
-            <AvatarFallback className="text-xs">
-              {message.user.display_name.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        ) : (
-          <div className="w-8 h-8 flex items-center justify-center">
-            <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-              {formatDistanceToNow(new Date(message.created_at + "Z"), {
-                addSuffix: true,
-              })}
-            </span>
+      <div
+        className={clsx(
+          "max-w-[70%] relative",
+          isOwnMessage ? "order-2" : "order-1"
+        )}
+      >
+        {/* Reply reference */}
+        {message.thread_depth > 0 && parentMessage && (
+          <div className="mb-2 ml-2 opacity-70">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground border-l-2 border-muted pl-3 py-1">
+              <Reply className="h-3 w-3" />
+              <span className="font-medium">
+                {isOwnMessage ? "You" : parentMessage.user.display_name}
+              </span>
+              <span className="truncate max-w-[200px]">
+                {parentMessage.message_text}
+              </span>
+            </div>
           </div>
         )}
-      </div>
 
-      {/* Message content */}
-      <div className="flex-1 min-w-0">
-        {/* Header */}
-        {isFirstInGroup && (
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold text-sm">
-              {message.user.display_name}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(message.created_at + "Z"), {
-                addSuffix: true,
-              })}
-            </span>
-            {getPositionText() && (
-              <Badge variant="outline" className="text-xs px-1.5 py-0.5 h-auto">
-                {getPositionText()}
-              </Badge>
+        <div className="flex items-end gap-2">
+          {/* Avatar for others */}
+          {!isOwnMessage && (
+            <div className="flex-shrink-0 mb-1">
+              {showAvatar && isFirstInGroup ? (
+                <Avatar className="w-8 h-8">
+                  <AvatarImage src={message.user.avatar_url} />
+                  <AvatarFallback className="text-xs bg-primary/10">
+                    {message.user.display_name.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <span
+                    className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-default"
+                    title={messageTime.fullFormat}
+                  >
+                    {messageTime.timeOnly}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Message bubble */}
+          <div
+            className={clsx(
+              "rounded-2xl px-4 py-2 relative max-w-full",
+              isOwnMessage
+                ? "bg-primary text-primary-foreground rounded-br-md"
+                : "bg-muted rounded-bl-md",
+              message.thread_depth > 0 && "mt-1"
             )}
-          </div>
-        )}
+          >
+            {/* Header for first message in group (others only) */}
+            {!isOwnMessage && isFirstInGroup && (
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-semibold text-sm">
+                  {message.user.display_name}
+                </span>
+                <span className="text-xs opacity-70">
+                  {messageTime.relativeTime}
+                </span>
+                {getPositionText() && (
+                  <Badge
+                    variant="secondary"
+                    className="text-[10px] px-1.5 py-0 h-auto bg-background/50"
+                  >
+                    {getPositionText()}
+                  </Badge>
+                )}
+              </div>
+            )}
 
-        {/* Message text */}
-        <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
-          {message.message_text}
-        </div>
-
-        {/* Reactions */}
-        {message.reactions && message.reactions.length > 0 && (
-          <div className="flex gap-1 mt-2 flex-wrap">
-            {message.reactions.map((reaction, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                className="h-6 px-2 text-xs rounded-full"
-                onClick={() => handleReact(reaction.emoji)}
-              >
-                {reaction.emoji} {/* You might want to count reactions here */}
-              </Button>
-            ))}
-          </div>
-        )}
-
-        {/* Actions */}
-        {(showActions || reactingWith) && (
-          <div className="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            {/* Quick reactions */}
-            <div className="flex items-center gap-0.5">
-              {quickReactions.map((emoji) => (
-                <Button
-                  key={emoji}
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 w-6 p-0 hover:bg-muted"
-                  onClick={() => handleReact(emoji)}
-                  disabled={reactingWith === emoji}
+            {/* Own message header */}
+            {isOwnMessage && isFirstInGroup && getPositionText() && (
+              <div className="flex items-center justify-end gap-2 mb-1">
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-1.5 py-0 h-auto bg-primary-foreground/20 text-primary-foreground"
                 >
-                  {reactingWith === emoji ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : (
-                    <span className="text-sm">{emoji}</span>
-                  )}
-                </Button>
-              ))}
+                  {getPositionText()}
+                </Badge>
+                <span className="text-xs opacity-70">
+                  {messageTime.relativeTime}
+                </span>
+              </div>
+            )}
+
+            {/* Message text */}
+            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+              {message.message_text}
             </div>
 
-            {/* Reply button */}
-            {onReply && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={() => onReply(message)}
-              >
-                <Reply className="h-3 w-3 mr-1" />
-                Reply
-              </Button>
+            {/* Reactions */}
+            {reactionArray.length > 0 && (
+              <div className="flex gap-1 mt-2 flex-wrap">
+                {reactionArray.map((reaction) => (
+                  <Button
+                    key={reaction.emoji}
+                    variant="ghost"
+                    size="sm"
+                    className={clsx(
+                      "h-6 px-2 text-xs rounded-full border border-border/50 hover:border-border",
+                      isOwnMessage
+                        ? "bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
+                        : "bg-background/70 hover:bg-background"
+                    )}
+                    onClick={() => handleReact(reaction.emoji)}
+                    title={`${reaction.users.join(", ")} reacted with ${reaction.emoji}`}
+                  >
+                    {reaction.emoji} {reaction.count}
+                  </Button>
+                ))}
+              </div>
             )}
+          </div>
 
-            {/* More actions */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <MoreHorizontal className="h-3 w-3" />
+          {/* Message timestamp for own messages */}
+          {/* {isOwnMessage && (
+            <div className="flex-shrink-0 mb-1 ml-2">
+              <div className="w-8 h-8 flex items-center justify-center">
+                <span
+                  className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-default"
+                  title={messageTime.fullFormat}
+                >
+                  {messageTime.timeOnly}
+                </span>
+              </div>
+            </div>
+          )} */}
+        </div>
+
+        {/* Floating action buttons */}
+        {showActions && (
+          <div
+            className={clsx(
+              "absolute top-0 flex items-center gap-1 z-10 transition-opacity",
+              isOwnMessage ? "-left-20 opacity-100" : "-right-20 opacity-100"
+            )}
+          >
+            {/* Emoji picker */}
+            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
+                >
+                  {reactingWith ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <SmilePlus className="h-4 w-4" />
+                  )}
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-32">
-                <DropdownMenuItem onClick={() => onReply?.(message)}>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-2" align="center">
+                <div className="grid grid-cols-4 gap-1">
+                  {quickReactions.map((emoji) => (
+                    <Button
+                      key={emoji}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0 hover:bg-muted text-base"
+                      onClick={() => handleReact(emoji)}
+                      disabled={reactingWith === emoji}
+                    >
+                      {emoji}
+                    </Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+
+            {/* Reply button */}
+            <Button
+              variant="secondary"
+              size="sm"
+              className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
+              onClick={() => onReply?.(message)}
+            >
+              <Reply className="h-4 w-4" />
+            </Button>
+
+            {/* More options */}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-32 p-1" align="center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-xs"
+                  onClick={() => onReply?.(message)}
+                >
                   <Reply className="h-3 w-3 mr-2" />
                   Reply
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Smile className="h-3 w-3 mr-2" />
-                  React
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </Button>
+              </PopoverContent>
+            </Popover>
           </div>
         )}
       </div>
@@ -231,8 +364,25 @@ export function MessageList({
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [userScrolledUp, setUserScrolledUp] = useState(false);
+  const { user } = useAuth();
+  const currentUserId = user?.id;
 
-  // Load scroll position from localStorage
+  // const [currentUserId, setCurrentUserId] = useState<string>("");
+
+  // // Get current user ID
+  // useEffect(() => {
+  //   const getCurrentUser = async () => {
+  //     const supabase = createClient();
+  //     const {
+  //       data: { user },
+  //     } = await supabase.auth.getUser();
+  //     if (user) {
+  //       setCurrentUserId(user.id);
+  //     }
+  //   };
+  //   getCurrentUser();
+  // }, []);
+
   const scrollPositionKey = `room-${room.id}-scroll`;
 
   const scrollToBottom = useCallback(() => {
@@ -257,7 +407,6 @@ export function MessageList({
     if (savedData && containerRef.current) {
       try {
         const { scrollTop, timestamp } = JSON.parse(savedData);
-        // Only restore if it's recent (within 1 hour)
         if (Date.now() - timestamp < 3600000) {
           containerRef.current.scrollTop = scrollTop;
           setShouldAutoScroll(false);
@@ -273,28 +422,40 @@ export function MessageList({
     if (!containerRef.current) return;
 
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50; // 50px threshold
+    const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
 
     setUserScrolledUp(!isAtBottom);
     setShouldAutoScroll(isAtBottom);
 
-    // Save scroll position when user scrolls
     if (!isAtBottom) {
       saveScrollPosition();
     }
   }, [saveScrollPosition]);
 
-  // Group messages by user and time
+  // Create a map of parent messages for replies
+  const messageMap = messages.reduce(
+    (map, msg) => {
+      map[msg.id] = msg;
+      return map;
+    },
+    {} as Record<string, IMessage>
+  );
+
+  // Group messages by user and time with better logic
   const groupedMessages = messages.reduce(
     (groups: IMessage[][], message, index) => {
       const prevMessage = messages[index - 1];
+      const timeDiff = prevMessage
+        ? new Date(message.created_at).getTime() -
+          new Date(prevMessage.created_at).getTime()
+        : Infinity;
+
       const shouldGroup =
         prevMessage &&
         prevMessage.user_id === message.user_id &&
-        new Date(message.created_at).getTime() -
-          new Date(prevMessage.created_at).getTime() <
-          300000 && // 5 minutes
-        message.thread_depth === prevMessage.thread_depth;
+        timeDiff < 300000 && // 5 minutes
+        message.thread_depth === prevMessage.thread_depth &&
+        message.parent_message_id === prevMessage.parent_message_id;
 
       if (shouldGroup) {
         groups[groups.length - 1].push(message);
@@ -307,27 +468,22 @@ export function MessageList({
     []
   );
 
-  // Initial scroll behavior
   useEffect(() => {
     if (messages.length > 0 && !loading) {
       if (localStorage.getItem(scrollPositionKey)) {
-        // Restore previous position
         setTimeout(restoreScrollPosition, 100);
       } else {
-        // First visit - scroll to bottom
         setTimeout(scrollToBottom, 100);
       }
     }
   }, [messages.length > 0, loading]);
 
-  // Auto-scroll for new messages
   useEffect(() => {
     if (messages.length > 0 && shouldAutoScroll) {
       scrollToBottom();
     }
   }, [messages, scrollToBottom, shouldAutoScroll]);
 
-  // Cleanup scroll position on unmount
   useEffect(() => {
     return () => {
       saveScrollPosition();
@@ -338,19 +494,20 @@ export function MessageList({
     return (
       <div className="flex items-center justify-center h-full">
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Loading messages...
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm">Loading conversation...</span>
         </div>
       </div>
     );
   }
 
   if (error) {
-    console.log({ theerroris: error });
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <p className="text-destructive mb-2">Failed to load messages</p>
+          <p className="text-destructive mb-2 font-medium">
+            Failed to load messages
+          </p>
           <p className="text-sm text-muted-foreground">{error}</p>
         </div>
       </div>
@@ -358,37 +515,49 @@ export function MessageList({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-background/50">
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto scroll-smooth"
+        className="flex-1 overflow-y-auto"
       >
         {messages.length === 0 ? (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center text-muted-foreground">
-              <p className="text-lg font-medium mb-2">No messages yet</p>
+            <div className="text-center text-muted-foreground max-w-md">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
+                <Reply className="h-8 w-8" />
+              </div>
+              <p className="text-lg font-medium mb-2">Start the conversation</p>
               <p className="text-sm">
-                Be the first to share your thoughts about this{" "}
-                {room.content.content_type}!
+                Be the first to share your thoughts about{" "}
+                <span className="font-medium">{room.title}</span>!
               </p>
             </div>
           </div>
         ) : (
-          <div className="py-4">
+          <div className="py-4 space-y-2">
             {groupedMessages.map((group) => (
-              <div key={group[0].id} className="mb-2">
-                {group.map((message, messageIndex) => (
-                  <MessageItem
-                    key={message.id}
-                    message={message}
-                    room={room}
-                    onReply={onReplyToMessage}
-                    onReact={onReactToMessage}
-                    isFirstInGroup={messageIndex === 0}
-                    showAvatar={messageIndex === 0}
-                  />
-                ))}
+              <div key={group[0].id}>
+                {group.map((message, messageIndex) => {
+                  const isOwnMessage = message.user_id === currentUserId;
+                  const parentMessage = message.parent_message_id
+                    ? messageMap[message.parent_message_id]
+                    : null;
+
+                  return (
+                    <MessageItem
+                      key={message.id}
+                      message={message}
+                      room={room}
+                      onReply={onReplyToMessage}
+                      onReact={onReactToMessage}
+                      isFirstInGroup={messageIndex === 0}
+                      showAvatar={messageIndex === 0}
+                      isOwnMessage={isOwnMessage}
+                      parentMessage={parentMessage}
+                    />
+                  );
+                })}
               </div>
             ))}
             <div ref={messagesEndRef} />
@@ -398,10 +567,10 @@ export function MessageList({
 
       {/* Scroll to bottom button */}
       {userScrolledUp && (
-        <div className="absolute bottom-4 right-6">
+        <div className="absolute bottom-20 right-6">
           <Button
             size="sm"
-            className="rounded-full shadow-lg"
+            className="rounded-full shadow-lg border bg-background text-foreground hover:bg-muted"
             onClick={() => {
               setShouldAutoScroll(true);
               setUserScrolledUp(false);
