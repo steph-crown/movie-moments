@@ -8,12 +8,17 @@ import { MoviePosition } from "@/components/room/movie-position";
 import { RoomHeader } from "@/components/room/room-header";
 import { RoomNotFound } from "@/components/room/room-not-found";
 import { RoomSidebar } from "@/components/room/room-sidebar";
+import { MessageList } from "@/components/room/message-list";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { IRoom } from "@/interfaces/room.interface";
+import { IMessage } from "@/interfaces/message.interface";
 import { fetchRoomByCode } from "@/lib/actions/rooms";
+import { useRealtimeMessages } from "@/hooks/use-realtime-messages";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+
+import { createClient } from "@/lib/supabase/client";
 
 export default function Page() {
   const params = useParams();
@@ -27,6 +32,41 @@ export default function Page() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string>("");
+  const [replyingTo, setReplyingTo] = useState<{
+    messageId: string;
+    userName: string;
+    messageText: string;
+  } | null>(null);
+
+  // Get current user ID
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentUserId(user.id);
+      }
+    };
+    getCurrentUser();
+  }, []);
+
+  // Enable realtime messages only when user is joined
+  const enableRealtime = room && isAuthenticated && userStatus === "joined";
+
+  const {
+    messages,
+    loading: messagesLoading,
+    error: messagesError,
+    sendMessage,
+    addReaction,
+    removeReaction,
+  } = useRealtimeMessages({
+    roomId: room?.id || "",
+    enabled: !!enableRealtime,
+  });
 
   const loadRoom = async () => {
     if (!roomCode) return;
@@ -35,7 +75,6 @@ export default function Page() {
     setError(null);
 
     try {
-      // First try to get room allowing unauthenticated access for public rooms
       const result = await fetchRoomByCode(roomCode, {
         requireParticipation: false,
         includeParticipantStatus: true,
@@ -43,7 +82,6 @@ export default function Page() {
       });
 
       if (result.requiresAuth) {
-        // Private room or no room found - redirect to login
         toast.error("Please log in to access this room");
         router.push(`/auth/login?roomCode=${roomCode}`);
         return;
@@ -54,7 +92,6 @@ export default function Page() {
         setUserStatus(result.data.userStatus || "not_member");
         setIsAuthenticated(result.data.isAuthenticated || false);
 
-        // If private room and not authenticated, redirect immediately
         if (
           result.data.room.privacy_level === "private" &&
           !result.data.isAuthenticated
@@ -82,40 +119,96 @@ export default function Page() {
     loadRoom();
   };
 
+  const handleSendMessage = async (
+    messageText: string,
+    options?: {
+      seasonNumber?: number;
+      episodeNumber?: number;
+      episodeTimestamp?: number;
+      parentMessageId?: string;
+    }
+  ) => {
+    if (!room || !isAuthenticated || userStatus !== "joined") return;
+
+    try {
+      await sendMessage({
+        room_id: room.id,
+        user_id: "", // Will be set by the hook
+        message_text: messageText,
+        season_number: options?.seasonNumber || null,
+        episode_number: options?.episodeNumber || null,
+        episode_timestamp: options?.episodeTimestamp || null,
+        thread_depth: options?.parentMessageId ? 1 : 0,
+        parent_message_id: options?.parentMessageId || null,
+        is_deleted: false,
+      });
+    } catch (error) {
+      toast.error("Failed to send message");
+      console.error("Send message error:", error);
+    }
+  };
+
+  const handleReplyToMessage = (message: IMessage) => {
+    setReplyingTo({
+      messageId: message.id,
+      userName: message.user.display_name,
+      messageText: message.message_text,
+    });
+  };
+
+  const handleCancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const handleReactToMessage = async (messageId: string, emoji: string) => {
+    if (!room || !isAuthenticated || userStatus !== "joined") return;
+
+    try {
+      // Check if user already reacted with this emoji
+      const existingReaction = messages
+        .find((m) => m.id === messageId)
+        ?.reactions?.find(
+          (r) => r.emoji === emoji && r.user_id === currentUserId
+        );
+
+      if (existingReaction) {
+        await removeReaction(existingReaction.id);
+      } else {
+        await addReaction(messageId, emoji);
+      }
+    } catch (error) {
+      toast.error("Failed to react to message");
+      console.error("React to message error:", error);
+    }
+  };
+
   if (loading) {
     return <BlockLoader />;
   }
 
   if (error) {
-    return (
-      // <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-      //   <h1 className="text-2xl font-semibold mb-2">Room Not Found</h1>
-      //   <p className="text-muted-foreground mb-4">{error}</p>
-      // </div>
-      <RoomNotFound />
-    );
+    return <RoomNotFound roomCode={roomCode} message={error} />;
   }
 
   if (!room) {
-    return (
-      // <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-      //   <h1 className="text-2xl font-semibold mb-2">Room Not Found</h1>
-      //   <p className="text-muted-foreground mb-4">
-      //     The room you&apos;re looking for doesn&apos;t exist.
-      //   </p>
-      // </div>
-
-      <RoomNotFound />
-    );
+    return <RoomNotFound roomCode={roomCode} />;
   }
 
   const renderBottomComponent = () => {
-    // If user is authenticated and joined, show chat input
     if (isAuthenticated && userStatus === "joined") {
-      return <ChatInput className="absolute bottom-5" />;
+      return (
+        <div className="absolute bottom-0 left-0 right-0 bg-background border-t">
+          <ChatInput
+            className="py-4"
+            room={room}
+            onSendMessage={handleSendMessage}
+            replyingTo={replyingTo}
+            onCancelReply={handleCancelReply}
+          />
+        </div>
+      );
     }
 
-    // If user is not authenticated, show login prompt (only for public rooms)
     if (!isAuthenticated) {
       return (
         <div className="absolute bottom-0 left-0 right-0">
@@ -124,7 +217,6 @@ export default function Page() {
       );
     }
 
-    // If user is authenticated but not joined/pending/left, show join prompt
     return (
       <div className="absolute bottom-0 left-0 right-0">
         <JoinRoomPrompt
@@ -147,9 +239,26 @@ export default function Page() {
     >
       <RoomSidebar variant="inset" />
 
-      <SidebarInset className="relative">
+      <SidebarInset className="relative flex flex-col">
         <RoomHeader room={room} />
         <MoviePosition />
+
+        {/* Messages Area - only show when joined */}
+        {isAuthenticated && userStatus === "joined" ? (
+          <div className="flex-1 overflow-hidden relative">
+            <MessageList
+              messages={messages}
+              loading={messagesLoading}
+              error={messagesError}
+              room={room}
+              onReplyToMessage={handleReplyToMessage}
+              onReactToMessage={handleReactToMessage}
+            />
+          </div>
+        ) : (
+          <div className="flex-1" />
+        )}
+
         {renderBottomComponent()}
       </SidebarInset>
     </SidebarProvider>

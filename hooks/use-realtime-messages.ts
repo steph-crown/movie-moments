@@ -1,0 +1,405 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+// hooks/use-realtime-messages.ts
+import { useEffect, useState, useCallback } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { IMessage } from "@/interfaces/message.interface";
+import { RealtimeChannel } from "@supabase/supabase-js";
+
+interface UseRealtimeMessagesProps {
+  roomId: string;
+  enabled?: boolean;
+}
+
+interface UseRealtimeMessagesReturn {
+  messages: IMessage[];
+  loading: boolean;
+  error: string | null;
+  sendMessage: (
+    message: Omit<IMessage, "id" | "created_at" | "updated_at" | "user">
+  ) => Promise<void>;
+  addReaction: (messageId: string, emoji: string) => Promise<void>;
+  removeReaction: (reactionId: string) => Promise<void>;
+  channel: RealtimeChannel | null;
+}
+
+export function useRealtimeMessages({
+  roomId,
+  enabled = true,
+}: UseRealtimeMessagesProps): UseRealtimeMessagesReturn {
+  const [messages, setMessages] = useState<IMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [channel, setChannel] = useState<RealtimeChannel | null>(null);
+
+  const supabase = createClient();
+
+  // Load initial messages
+  const loadMessages = useCallback(async () => {
+    if (!enabled) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select(
+          `
+          *,
+          profiles!messages_profiles_user_id_fkey(
+            id,
+            email,
+            username,
+            display_name,
+            avatar_url
+          ),
+          reactions(
+            id,
+            emoji,
+            created_at,
+            user_id,
+            profiles!reactions_profiles_user_id_fkey(
+              id,
+              username,
+              display_name,
+              avatar_url
+            )
+          )
+        `
+        )
+        .eq("room_id", roomId)
+        .eq("is_deleted", false)
+        .order("created_at", { ascending: true });
+
+      if (error) throw error;
+
+      // Transform the data to match IMessage interface
+      const transformedMessages: IMessage[] = (data || []).map((msg) => ({
+        id: msg.id,
+        room_id: roomId,
+        user_id: msg.user_id,
+        message_text: msg.message_text,
+        season_number: msg.season_number,
+        episode_number: msg.episode_number,
+        episode_timestamp: msg.episode_timestamp,
+        thread_depth: msg.thread_depth,
+        parent_message_id: msg.parent_message_id,
+        created_at: msg.created_at,
+        updated_at: msg.updated_at,
+        is_deleted: msg.is_deleted,
+        user: {
+          id: msg.profiles?.id || msg.user_id,
+          email: msg.profiles?.email || "",
+          username: msg.profiles?.username || "User",
+          display_name:
+            msg.profiles?.display_name || msg.profiles?.username || "User",
+          avatar_url: msg.profiles?.avatar_url,
+        },
+        reactions: (msg.reactions || []).map((reaction: any) => ({
+          id: reaction.id,
+          message_id: msg.id,
+          user_id: reaction.user_id,
+          emoji: reaction.emoji,
+          created_at: reaction.created_at,
+          user: {
+            id: reaction.profiles?.id || reaction.user_id,
+            username: reaction.profiles?.username || "User",
+            display_name:
+              reaction.profiles?.display_name ||
+              reaction.profiles?.username ||
+              "User",
+          },
+        })),
+      }));
+
+      setMessages(transformedMessages);
+    } catch (err) {
+      console.error("Error loading messages:", err);
+      setError(err instanceof Error ? err.message : "Failed to load messages");
+    } finally {
+      setLoading(false);
+    }
+  }, [roomId, enabled, supabase]);
+
+  // Send message function
+  const sendMessage = useCallback(
+    async (
+      messageData: Omit<IMessage, "id" | "created_at" | "updated_at" | "user">
+    ) => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        const { error } = await supabase.from("messages").insert({
+          room_id: roomId,
+          user_id: user.id,
+          message_text: messageData.message_text,
+          season_number: messageData.season_number,
+          episode_number: messageData.episode_number,
+          episode_timestamp: messageData.episode_timestamp,
+          thread_depth: messageData.thread_depth || 0,
+          parent_message_id: messageData.parent_message_id,
+        });
+
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error sending message:", err);
+        throw err;
+      }
+    },
+    [roomId, supabase]
+  );
+  // Add reaction function
+  const addReaction = useCallback(
+    async (messageId: string, emoji: string) => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("Not authenticated");
+
+        const { error } = await supabase.from("reactions").insert({
+          message_id: messageId,
+          user_id: user.id,
+          emoji: emoji,
+        });
+
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error adding reaction:", err);
+        throw err;
+      }
+    },
+    [supabase]
+  );
+
+  // Remove reaction function
+  const removeReaction = useCallback(
+    async (reactionId: string) => {
+      try {
+        const { error } = await supabase
+          .from("reactions")
+          .delete()
+          .eq("id", reactionId);
+
+        if (error) throw error;
+      } catch (err) {
+        console.error("Error removing reaction:", err);
+        throw err;
+      }
+    },
+    [supabase]
+  );
+
+  // Set up realtime subscription
+  useEffect(() => {
+    if (!enabled) return;
+
+    loadMessages();
+
+    // Create realtime channel
+    const realtimeChannel = supabase
+      .channel(`room:${roomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `room_id=eq.${roomId}`,
+        },
+        async (payload) => {
+          console.log("New message received:", payload);
+
+          // Fetch the full message with user data
+          const { data, error } = await supabase
+            .from("messages")
+            .select(
+              `
+              *,
+              user:user_id(id, email, raw_user_meta_data),
+              reactions(
+                id,
+                emoji,
+                created_at,
+                user:user_id(id, raw_user_meta_data)
+              )
+            `
+            )
+            .eq("id", payload.new.id)
+            .single();
+
+          if (!error && data) {
+            const newMessage: IMessage = {
+              id: data.id,
+              room_id: roomId,
+              user_id: data.user?.id || "",
+              message_text: data.message_text,
+              season_number: data.season_number,
+              episode_number: data.episode_number,
+              episode_timestamp: data.episode_timestamp,
+              thread_depth: data.thread_depth,
+              parent_message_id: data.parent_message_id,
+              created_at: data.created_at,
+              updated_at: data.updated_at,
+              is_deleted: data.is_deleted,
+              user: {
+                id: data.user?.id || "",
+                email: data.user?.email || "",
+                username: data.user?.raw_user_meta_data?.username || "User",
+                display_name:
+                  data.user?.raw_user_meta_data?.display_name ||
+                  data.user?.raw_user_meta_data?.username ||
+                  "User",
+                avatar_url: data.user?.raw_user_meta_data?.avatar_url,
+              },
+              reactions: (data.reactions || []).map((reaction: any) => ({
+                id: reaction.id,
+                message_id: data.id,
+                user_id: reaction.user?.id || "",
+                emoji: reaction.emoji,
+                created_at: reaction.created_at,
+                user: {
+                  id: reaction.user?.id || "",
+                  username:
+                    reaction.user?.raw_user_meta_data?.username || "User",
+                  display_name:
+                    reaction.user?.raw_user_meta_data?.display_name ||
+                    reaction.user?.raw_user_meta_data?.username ||
+                    "User",
+                },
+              })),
+            };
+
+            setMessages((prev) => [...prev, newMessage]);
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          console.log("Message updated:", payload);
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === payload.new.id
+                ? { ...msg, ...payload.new, updated_at: payload.new.updated_at }
+                : msg
+            )
+          );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "messages",
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          console.log("Message deleted:", payload);
+          setMessages((prev) =>
+            prev.filter((msg) => msg.id !== payload.old.id)
+          );
+        }
+      )
+      // Listen for reaction changes
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "reactions",
+        },
+        async (payload) => {
+          console.log("Reaction added:", payload);
+
+          // Fetch the full reaction with user data
+          const { data, error } = await supabase
+            .from("reactions")
+            .select(
+              `
+              *,
+              user:user_id(id, raw_user_meta_data)
+            `
+            )
+            .eq("id", payload.new.id)
+            .single();
+
+          if (!error && data) {
+            const newReaction = {
+              id: data.id,
+              message_id: data.message_id,
+              user_id: data.user?.id || "",
+              emoji: data.emoji,
+              created_at: data.created_at,
+              user: {
+                id: data.user?.id || "",
+                username: data.user?.raw_user_meta_data?.username || "User",
+                display_name:
+                  data.user?.raw_user_meta_data?.display_name ||
+                  data.user?.raw_user_meta_data?.username ||
+                  "User",
+              },
+            };
+
+            setMessages((prev) =>
+              prev.map((msg) =>
+                msg.id === data.message_id
+                  ? {
+                      ...msg,
+                      reactions: [...(msg.reactions || []), newReaction],
+                    }
+                  : msg
+              )
+            );
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "DELETE",
+          schema: "public",
+          table: "reactions",
+        },
+        (payload) => {
+          console.log("Reaction removed:", payload);
+          setMessages((prev) =>
+            prev.map((msg) => ({
+              ...msg,
+              reactions:
+                msg.reactions?.filter((r) => r.id !== payload.old.id) || [],
+            }))
+          );
+        }
+      )
+      .subscribe();
+
+    setChannel(realtimeChannel);
+
+    // Cleanup
+    return () => {
+      realtimeChannel.unsubscribe();
+      setChannel(null);
+    };
+  }, [roomId, enabled, loadMessages, supabase]);
+
+  return {
+    messages,
+    loading,
+    error,
+    sendMessage,
+    addReaction,
+    removeReaction,
+    channel,
+  };
+}
