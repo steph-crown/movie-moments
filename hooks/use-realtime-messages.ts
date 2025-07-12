@@ -200,6 +200,12 @@ export function useRealtimeMessages({
         } = await supabase.auth.getUser();
         if (!user) throw new Error("Not authenticated");
 
+        await supabase
+          .from("reactions")
+          .delete()
+          .eq("message_id", messageId)
+          .eq("user_id", user.id);
+
         const { error } = await supabase.from("reactions").insert({
           message_id: messageId,
           user_id: user.id,

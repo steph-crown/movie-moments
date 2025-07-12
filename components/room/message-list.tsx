@@ -107,8 +107,8 @@ function MessageItem({
         ) : (
           <div className="w-8 h-8 flex items-center justify-center">
             <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">
-              {formatDistanceToNow(new Date(message.created_at), {
-                addSuffix: false,
+              {formatDistanceToNow(new Date(message.created_at + "Z"), {
+                addSuffix: true,
               })}
             </span>
           </div>
@@ -124,7 +124,7 @@ function MessageItem({
               {message.user.display_name}
             </span>
             <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(message.created_at), {
+              {formatDistanceToNow(new Date(message.created_at + "Z"), {
                 addSuffix: true,
               })}
             </span>
@@ -398,7 +398,7 @@ export function MessageList({
 
       {/* Scroll to bottom button */}
       {userScrolledUp && (
-        <div className="absolute bottom-24 right-6">
+        <div className="absolute bottom-4 right-6">
           <Button
             size="sm"
             className="rounded-full shadow-lg"
