@@ -30,6 +30,8 @@ interface MessageItemProps {
   showAvatar?: boolean;
   isOwnMessage?: boolean;
   parentMessage?: IMessage | null;
+  onScrollToParent?: (messageId: string) => void; // ADD THIS
+  isHighlighted?: boolean; // ADD THIS
 }
 
 function MessageItem({
@@ -41,6 +43,8 @@ function MessageItem({
   showAvatar = true,
   isOwnMessage = false,
   parentMessage = null,
+  onScrollToParent, // ADD THIS
+  isHighlighted = false, // ADD THIS
 }: MessageItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [reactingWith, setReactingWith] = useState<string | null>(null);
@@ -130,9 +134,11 @@ function MessageItem({
 
   return (
     <div
+      id={`message-${message.id}`} // ADD THIS
       className={clsx(
-        "group px-4 py-1 hover:bg-muted/20 transition-colors relative",
+        "group px-4 py-1 hover:bg-muted/20 transition-all duration-300 relative", // CHANGED transition-colors to transition-all duration-300
         isOwnMessage ? "flex justify-end" : "flex justify-start"
+        // ADD THIS
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -146,15 +152,20 @@ function MessageItem({
         {/* Reply reference */}
         {message.thread_depth > 0 && parentMessage && (
           <div className="mb-2 ml-2 opacity-70">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground border-l-2 border-muted pl-3 py-1">
+            <button
+              onClick={() => onScrollToParent?.(parentMessage.id)}
+              className="flex items-center gap-2 text-xs text-muted-foreground border-l-2 border-muted pl-3 py-1 hover:bg-muted/20 rounded-r transition-colors cursor-pointer"
+            >
               <Reply className="h-3 w-3" />
               <span className="font-medium">
-                {isOwnMessage ? "You" : parentMessage.user.display_name}
+                {parentMessage.user_id === message.user_id
+                  ? "You"
+                  : parentMessage.user.display_name}
               </span>
               <span className="truncate max-w-[200px]">
                 {parentMessage.message_text}
               </span>
-            </div>
+            </button>
           </div>
         )}
 
@@ -185,11 +196,12 @@ function MessageItem({
           {/* Message bubble */}
           <div
             className={clsx(
-              "rounded-2xl px-4 py-2 relative max-w-full",
+              "rounded-2xl px-4 py-2 relative max-w-full transition-all",
               isOwnMessage
                 ? "bg-primary text-primary-foreground rounded-br-md"
                 : "bg-muted rounded-bl-md",
-              message.thread_depth > 0 && "mt-1"
+              message.thread_depth > 0 && "mt-1",
+              isHighlighted && "ring-8 ring-primary/20 rounded-lg opacity-60"
             )}
           >
             {/* Header for first message in group (others only) */}
@@ -366,6 +378,41 @@ export function MessageList({
   const [userScrolledUp, setUserScrolledUp] = useState(false);
   const { user } = useAuth();
   const currentUserId = user?.id;
+
+  const [highlightedMessage, setHighlightedMessage] = useState<string | null>(
+    null
+  );
+
+  const scrollToMessage = useCallback((messageId: string) => {
+    const messageElement = document.getElementById(`message-${messageId}`);
+    if (messageElement && containerRef.current) {
+      // Calculate scroll position to center the message
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const messageRect = messageElement.getBoundingClientRect();
+      const scrollTop =
+        containerRef.current.scrollTop +
+        messageRect.top -
+        containerRect.top -
+        containerRect.height / 2 +
+        messageRect.height / 2;
+
+      containerRef.current.scrollTo({
+        top: scrollTop,
+        behavior: "smooth",
+      });
+
+      // Highlight the message
+      setHighlightedMessage(messageId);
+
+      // Remove highlight after 3 seconds
+      setTimeout(() => {
+        setHighlightedMessage(null);
+      }, 3000);
+
+      // Prevent auto-scroll while user is viewing the highlighted message
+      setShouldAutoScroll(false);
+    }
+  }, []);
 
   // const [currentUserId, setCurrentUserId] = useState<string>("");
 
@@ -551,10 +598,12 @@ export function MessageList({
                       room={room}
                       onReply={onReplyToMessage}
                       onReact={onReactToMessage}
+                      onScrollToParent={scrollToMessage} // ADD THIS
                       isFirstInGroup={messageIndex === 0}
                       showAvatar={messageIndex === 0}
                       isOwnMessage={isOwnMessage}
                       parentMessage={parentMessage}
+                      isHighlighted={highlightedMessage === message.id} // ADD THIS
                     />
                   );
                 })}
