@@ -304,10 +304,10 @@ export function useRealtimeMessages({
             //     email: data.profiles?.email || "",
             //     username: data.profiles?.raw_user_meta_data?.username || "User",
             //     display_name:
-            //       data.user?.raw_user_meta_data?.display_name ||
-            //       data.user?.raw_user_meta_data?.username ||
+            //       data.profiles?.display_name ||
+            //       data.profiles?.username ||
             //       "User",
-            //     avatar_url: data.user?.raw_user_meta_data?.avatar_url,
+            //     avatar_url: data.profiles?.avatar_url,
             //   },
             //   reactions: (data.reactions || []).map((reaction: any) => ({
             //     id: reaction.id,
@@ -318,10 +318,10 @@ export function useRealtimeMessages({
             //     user: {
             //       id: reaction.user?.id || "",
             //       username:
-            //         reaction.user?.raw_user_meta_data?.username || "User",
+            //         reaction.profiles?.username || "User",
             //       display_name:
-            //         reaction.user?.raw_user_meta_data?.display_name ||
-            //         reaction.user?.raw_user_meta_data?.username ||
+            //         reaction.profiles?.display_name ||
+            //         reaction.profiles?.username ||
             //         "User",
             //     },
             //   })),
@@ -384,7 +384,12 @@ export function useRealtimeMessages({
             .select(
               `
               *,
-              user:user_id(id, raw_user_meta_data)
+              profiles!reactions_profiles_user_id_fkey(
+                id,
+                username,
+                display_name,
+                avatar_url
+              )
             `
             )
             .eq("id", payload.new.id)
@@ -394,15 +399,15 @@ export function useRealtimeMessages({
             const newReaction = {
               id: data.id,
               message_id: data.message_id,
-              user_id: data.user?.id || "",
+              user_id: data.profiles?.id || "",
               emoji: data.emoji,
               created_at: data.created_at,
               user: {
                 id: data.user?.id || "",
-                username: data.user?.raw_user_meta_data?.username || "User",
+                username: data.profiles?.username || "User",
                 display_name:
-                  data.user?.raw_user_meta_data?.display_name ||
-                  data.user?.raw_user_meta_data?.username ||
+                  data.profiles?.display_name ||
+                  data.profiles?.username ||
                   "User",
               },
             };
