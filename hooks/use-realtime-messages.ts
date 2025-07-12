@@ -33,6 +33,46 @@ export function useRealtimeMessages({
 
   const supabase = createClient();
 
+  const formMessageFromQueryResponse = (msg: any): IMessage => {
+    return {
+      id: msg.id,
+      room_id: roomId,
+      user_id: msg.user_id,
+      message_text: msg.message_text,
+      season_number: msg.season_number,
+      episode_number: msg.episode_number,
+      episode_timestamp: msg.episode_timestamp,
+      thread_depth: msg.thread_depth,
+      parent_message_id: msg.parent_message_id,
+      created_at: msg.created_at,
+      updated_at: msg.updated_at,
+      is_deleted: msg.is_deleted,
+      user: {
+        id: msg.profiles?.id || msg.user_id,
+        email: msg.profiles?.email || "",
+        username: msg.profiles?.username || "User",
+        display_name:
+          msg.profiles?.display_name || msg.profiles?.username || "User",
+        avatar_url: msg.profiles?.avatar_url,
+      },
+      reactions: (msg.reactions || []).map((reaction: any) => ({
+        id: reaction.id,
+        message_id: msg.id,
+        user_id: reaction.user_id,
+        emoji: reaction.emoji,
+        created_at: reaction.created_at,
+        user: {
+          id: reaction.profiles?.id || reaction.user_id,
+          username: reaction.profiles?.username || "User",
+          display_name:
+            reaction.profiles?.display_name ||
+            reaction.profiles?.username ||
+            "User",
+        },
+      })),
+    };
+  };
+
   // Load initial messages
   const loadMessages = useCallback(async () => {
     if (!enabled) return;
@@ -219,59 +259,75 @@ export function useRealtimeMessages({
             .select(
               `
               *,
-              user:user_id(id, email, raw_user_meta_data),
+              profiles!messages_profiles_user_id_fkey(
+                id,
+                email,
+                username,
+                display_name,
+                avatar_url
+              ),
               reactions(
                 id,
                 emoji,
                 created_at,
-                user:user_id(id, raw_user_meta_data)
+                user_id,
+                profiles!reactions_profiles_user_id_fkey(
+                  id,
+                  username,
+                  display_name,
+                  avatar_url
+                )
               )
             `
             )
             .eq("id", payload.new.id)
             .single();
 
+          console.log({ thenewmessageis: data, error });
+
           if (!error && data) {
-            const newMessage: IMessage = {
-              id: data.id,
-              room_id: roomId,
-              user_id: data.user?.id || "",
-              message_text: data.message_text,
-              season_number: data.season_number,
-              episode_number: data.episode_number,
-              episode_timestamp: data.episode_timestamp,
-              thread_depth: data.thread_depth,
-              parent_message_id: data.parent_message_id,
-              created_at: data.created_at,
-              updated_at: data.updated_at,
-              is_deleted: data.is_deleted,
-              user: {
-                id: data.user?.id || "",
-                email: data.user?.email || "",
-                username: data.user?.raw_user_meta_data?.username || "User",
-                display_name:
-                  data.user?.raw_user_meta_data?.display_name ||
-                  data.user?.raw_user_meta_data?.username ||
-                  "User",
-                avatar_url: data.user?.raw_user_meta_data?.avatar_url,
-              },
-              reactions: (data.reactions || []).map((reaction: any) => ({
-                id: reaction.id,
-                message_id: data.id,
-                user_id: reaction.user?.id || "",
-                emoji: reaction.emoji,
-                created_at: reaction.created_at,
-                user: {
-                  id: reaction.user?.id || "",
-                  username:
-                    reaction.user?.raw_user_meta_data?.username || "User",
-                  display_name:
-                    reaction.user?.raw_user_meta_data?.display_name ||
-                    reaction.user?.raw_user_meta_data?.username ||
-                    "User",
-                },
-              })),
-            };
+            // const newMessage: IMessage = {
+            //   id: data.id,
+            //   room_id: roomId,
+            //   user_id: data.user?.id || "",
+            //   message_text: data.message_text,
+            //   season_number: data.season_number,
+            //   episode_number: data.episode_number,
+            //   episode_timestamp: data.episode_timestamp,
+            //   thread_depth: data.thread_depth,
+            //   parent_message_id: data.parent_message_id,
+            //   created_at: data.created_at,
+            //   updated_at: data.updated_at,
+            //   is_deleted: data.is_deleted,
+            //   user: {
+            //     id: data.profiles?.id || "",
+            //     email: data.profiles?.email || "",
+            //     username: data.profiles?.raw_user_meta_data?.username || "User",
+            //     display_name:
+            //       data.user?.raw_user_meta_data?.display_name ||
+            //       data.user?.raw_user_meta_data?.username ||
+            //       "User",
+            //     avatar_url: data.user?.raw_user_meta_data?.avatar_url,
+            //   },
+            //   reactions: (data.reactions || []).map((reaction: any) => ({
+            //     id: reaction.id,
+            //     message_id: data.id,
+            //     user_id: reaction.user?.id || "",
+            //     emoji: reaction.emoji,
+            //     created_at: reaction.created_at,
+            //     user: {
+            //       id: reaction.user?.id || "",
+            //       username:
+            //         reaction.user?.raw_user_meta_data?.username || "User",
+            //       display_name:
+            //         reaction.user?.raw_user_meta_data?.display_name ||
+            //         reaction.user?.raw_user_meta_data?.username ||
+            //         "User",
+            //     },
+            //   })),
+            // };
+
+            const newMessage = formMessageFromQueryResponse(data);
 
             setMessages((prev) => [...prev, newMessage]);
           }

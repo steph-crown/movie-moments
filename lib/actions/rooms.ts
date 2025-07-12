@@ -503,8 +503,6 @@ export async function fetchRoomByCode(
       .eq("room_code", roomCode)
       .single();
 
-    console.log({ tellme: roomError, roomData });
-
     if (roomError || !roomData) {
       if (!user) {
         // ask to login to confirm that they have access to the private room

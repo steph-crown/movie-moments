@@ -6,8 +6,6 @@ import { Toast } from "./toast";
 export function ToastContainer() {
   const { toasts } = useToast();
 
-  console.log({ musiccc: toasts });
-
   if (toasts.length === 0) return null;
 
   console.log({ trending: toasts });

@@ -197,7 +197,7 @@ export default function Page() {
   const renderBottomComponent = () => {
     if (isAuthenticated && userStatus === "joined") {
       return (
-        <div className="absolute bottom-0 left-0 right-0 bg-background border-t">
+        <div className="relative bottom-0 left-0 right-0 bg-background border-t">
           <ChatInput
             className="py-4"
             room={room}
@@ -239,27 +239,29 @@ export default function Page() {
     >
       <RoomSidebar variant="inset" />
 
-      <SidebarInset className="relative flex flex-col">
+      <SidebarInset className="relative flex flex-col h-[calc(100vh_-_1rem)]">
         <RoomHeader room={room} />
         <MoviePosition />
 
-        {/* Messages Area - only show when joined */}
-        {isAuthenticated && userStatus === "joined" ? (
-          <div className="flex-1 overflow-hidden relative">
-            <MessageList
-              messages={messages}
-              loading={messagesLoading}
-              error={messagesError}
-              room={room}
-              onReplyToMessage={handleReplyToMessage}
-              onReactToMessage={handleReactToMessage}
-            />
-          </div>
-        ) : (
-          <div className="flex-1" />
-        )}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Messages Area - only show when joined */}
+          {isAuthenticated && userStatus === "joined" ? (
+            <div className="flex-1 overflow-hidden relative">
+              <MessageList
+                messages={messages}
+                loading={messagesLoading}
+                error={messagesError}
+                room={room}
+                onReplyToMessage={handleReplyToMessage}
+                onReactToMessage={handleReactToMessage}
+              />
+            </div>
+          ) : (
+            <div className="flex-1" />
+          )}
 
-        {renderBottomComponent()}
+          {renderBottomComponent()}
+        </div>
       </SidebarInset>
     </SidebarProvider>
   );
