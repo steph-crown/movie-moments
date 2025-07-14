@@ -3,7 +3,6 @@
 
 import { useAuth } from "@/hooks/use-auth";
 import { useContentSearch } from "@/hooks/use-content-search";
-import { useToast } from "@/hooks/use-toast";
 import {
   ContentTypeEnum,
   CreateRoomData,
@@ -102,7 +101,6 @@ export function CreateRoomBtn({
   triggerNode?: ReactNode;
   btnClassName?: string;
 }) {
-  const { showError } = useToast();
   const [step, setStep] = useState<Step>("type");
   const [selectedContent, setSelectedContent] = useState<SearchResult | null>(
     null
@@ -226,7 +224,7 @@ export function CreateRoomBtn({
         // Navigate to the new room
         router.push(`/${result.data.room_code}`);
       } else {
-        showError("Failed to create room", result.error || "Please try again.");
+        toast.error("Failed to create room. Please try again");
       }
     } catch (error) {
       console.error("Room creation error:", error);

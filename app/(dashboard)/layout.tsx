@@ -1,4 +1,5 @@
 import { CreateRoomBtn } from "@/components/btns/create-room-btn";
+import { JoinRoomBtn } from "@/components/btns/join-room-btn";
 import { Logo } from "@/components/logo";
 import {
   Popover,
@@ -43,8 +44,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 className="!text-xs !h-[2.25rem] w-[12rem] min-[780px]:w-[16rem] !pl-10"
               />
             </div> */}
-
             <CreateRoomBtn />
+
+            {/* <JoinRoomBtn /> */}
 
             <Popover>
               <PopoverTrigger className="flex lg:hidden">

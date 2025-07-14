@@ -1,39 +1,8 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Plus, Users, Film, Popcorn } from "lucide-react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { Film, Popcorn } from "lucide-react";
 import { CreateRoomBtn } from "../btns/create-room-btn";
+import { JoinRoomBtn } from "../btns/join-room-btn";
 
 export function EmptyRoomsState() {
-  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
-  const [roomCode, setRoomCode] = useState("");
-  const router = useRouter();
-
-  const handleJoinRoom = () => {
-    if (roomCode.trim()) {
-      router.push(`/${roomCode.trim()}`);
-      setJoinDialogOpen(false);
-      setRoomCode("");
-    } else {
-      toast.error("Please enter a room code");
-    }
-  };
-
-  const handleCreateRoom = () => {
-    router.push("/create");
-  };
-
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       {/* Beautiful Illustration */}
@@ -90,56 +59,7 @@ export function EmptyRoomsState() {
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
         <CreateRoomBtn btnClassName="sm:flex-1 h-11 font-medium" fullWidth />
 
-        <Dialog open={joinDialogOpen} onOpenChange={setJoinDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              className="sm:flex-1 h-11 font-medium"
-              size="lg"
-            >
-              <Users className="w-4 h-4 mr-2" />
-              Join Room
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Join a Room</DialogTitle>
-              <DialogDescription>
-                Enter the room code shared by your friend
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="roomCode">Room Code</Label>
-                <Input
-                  id="roomCode"
-                  placeholder="e.g. ABC123"
-                  value={roomCode}
-                  onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                  onKeyDown={(e) => e.key === "Enter" && handleJoinRoom()}
-                  className="uppercase tracking-wider text-center font-mono"
-                  autoFocus
-                />
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setJoinDialogOpen(false)}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleJoinRoom}
-                className="flex-1"
-                disabled={!roomCode.trim()}
-              >
-                Join Room
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        <JoinRoomBtn btnClassName="sm:flex-1 h-11 font-medium" />
       </div>
 
       {/* Additional hint */}

@@ -945,3 +945,187 @@ export async function joinRoom(roomId: string): Promise<{
     return { success: false, error: "An unexpected error occurred" };
   }
 }
+
+// Add this function to your room actions file
+
+export async function joinRoomByCode(roomCodeOrLink: string): Promise<{
+  success: boolean;
+  data?: {
+    roomCode: string;
+    roomId: string;
+    message: string;
+  };
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "You must be logged in to join a room" };
+    }
+
+    // Extract room code from link or use as-is
+    let roomCode = roomCodeOrLink.trim();
+
+    // Check if it's a URL and extract room code
+    if (roomCode.includes("/")) {
+      const segments = roomCode.split("/");
+      roomCode = segments[segments.length - 1];
+    }
+
+    // Clean up room code (remove query params if any)
+    if (roomCode.includes("?")) {
+      roomCode = roomCode.split("?")[0];
+    }
+
+    // Validate room code format
+    if (!roomCode || roomCode.length < 3) {
+      return { success: false, error: "Invalid room code format" };
+    }
+
+    console.log({ roomCode });
+
+    // Find room by code
+    const { data: room, error: roomError } = await supabase
+      .from("rooms")
+      .select("id, title, privacy_level, creator_id, room_code, member_count")
+      .eq("room_code", roomCode)
+      .eq("status", "active") // Only active rooms
+      .single();
+
+    console.log({ roomError });
+
+    if (roomError || !room) {
+      return {
+        success: false,
+        error: "Room not found or is private. Please check the room code/link.",
+      };
+    }
+
+    // Check if user is already a participant
+    const { data: existingParticipant, error: participantError } =
+      await supabase
+        .from("room_participants")
+        .select("id, status, role")
+        .eq("room_id", room.id)
+        .eq("user_id", user.id)
+        .single();
+
+    if (participantError && participantError.code !== "PGRST116") {
+      console.error("Error checking existing participant:", participantError);
+      return { success: false, error: "Failed to check participation status" };
+    }
+
+    if (existingParticipant) {
+      // User already exists as participant
+      if (existingParticipant.status === "joined") {
+        return {
+          success: true,
+          data: {
+            roomCode: room.room_code,
+            roomId: room.id,
+            message: "You're already a member of this room!",
+          },
+        };
+      }
+
+      // User exists but not joined (pending or left) - update to joined
+      const { error: updateError } = await supabase
+        .from("room_participants")
+        .update({
+          status: "joined",
+          joined_at: new Date().toISOString(),
+          last_seen: new Date().toISOString(),
+        })
+        .eq("id", existingParticipant.id);
+
+      if (updateError) {
+        console.error("Error updating participant status:", updateError);
+        return { success: false, error: "Failed to join room" };
+      }
+
+      // Update room last activity
+      await supabase
+        .from("rooms")
+        .update({ last_activity: new Date().toISOString() })
+        .eq("id", room.id);
+
+      const message =
+        existingParticipant.status === "pending"
+          ? "Successfully joined the room!"
+          : "Welcome back to the room!";
+
+      return {
+        success: true,
+        data: {
+          roomCode: room.room_code,
+          roomId: room.id,
+          message,
+        },
+      };
+    }
+
+    // User doesn't exist as participant
+    if (room.privacy_level === "private") {
+      // For private rooms, user must be invited first
+      return {
+        success: false,
+        error: "This is a private room. You need an invitation to join.",
+      };
+    }
+
+    // Public room - create new participant entry
+    const { error: insertError } = await supabase
+      .from("room_participants")
+      .insert({
+        room_id: room.id,
+        user_id: user.id,
+        status: "joined",
+        role: "member",
+        join_method: "public_link",
+        invited_at: new Date().toISOString(),
+        joined_at: new Date().toISOString(),
+        last_seen: new Date().toISOString(),
+        current_season: null,
+        current_episode: null,
+        playback_timestamp: 0,
+        position_updated_at: new Date().toISOString(),
+      });
+
+    if (insertError) {
+      console.error("Error creating participant:", insertError);
+      return { success: false, error: "Failed to join room" };
+    }
+
+    // Update room member count and last activity
+    const { error: countUpdateError } = await supabase
+      .from("rooms")
+      .update({
+        member_count: (room.member_count || 0) + 1,
+        last_activity: new Date().toISOString(),
+      })
+      .eq("id", room.id);
+
+    if (countUpdateError) {
+      console.error("Error updating room:", countUpdateError);
+      // Don't fail the join for this
+    }
+
+    return {
+      success: true,
+      data: {
+        roomCode: room.room_code,
+        roomId: room.id,
+        message: "Successfully joined the room!",
+      },
+    };
+  } catch (error) {
+    console.error("Error in joinRoomByCode:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
