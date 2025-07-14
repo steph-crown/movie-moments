@@ -36,17 +36,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className=" items-center gap-4 flex">
-            {/* <div className="relative hidden sm:block">
-              <SearchIcon className="h-5 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+            <CreateRoomBtn btnClassName="h-10" />
 
-              <Input
-                placeholder="Search rooms"
-                className="!text-xs !h-[2.25rem] w-[12rem] min-[780px]:w-[16rem] !pl-10"
-              />
-            </div> */}
-            <CreateRoomBtn />
-
-            {/* <JoinRoomBtn /> */}
+            <JoinRoomBtn btnClassName="h-10 hidden lg:flex" />
 
             <Popover>
               <PopoverTrigger className="flex lg:hidden">
