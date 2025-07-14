@@ -1,5 +1,6 @@
 "use client";
 
+import { EmptyRoomsState } from "@/components/room/empty-rooms-state";
 import { Room } from "@/components/room/room";
 import { RoomListItem } from "@/components/room/room-list-item";
 import { Button } from "@/components/ui/button";
@@ -271,9 +272,7 @@ export default function Rooms() {
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         ) : rooms.length === 0 ? (
-          <div className="text-center text-muted-foreground py-12">
-            <p>No rooms found.</p>
-          </div>
+          <EmptyRoomsState />
         ) : (
           <>
             {viewMode === "grid" ? (

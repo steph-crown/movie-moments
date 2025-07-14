@@ -96,9 +96,11 @@ type Step = "type" | "search" | "details";
 export function CreateRoomBtn({
   fullWidth,
   triggerNode,
+  btnClassName,
 }: {
   fullWidth?: boolean;
   triggerNode?: ReactNode;
+  btnClassName?: string;
 }) {
   const { showError } = useToast();
   const [step, setStep] = useState<Step>("type");
@@ -253,7 +255,7 @@ export function CreateRoomBtn({
           disabled
           size="default"
           className={clsx(
-            "hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4",
+            "hidden min-[390px]:flex  font-semibold !px-3 sm:!px-4",
             fullWidth && "!w-full !flex"
           )}
         >
@@ -265,7 +267,7 @@ export function CreateRoomBtn({
           disabled
           size="icon"
           className={clsx(
-            "flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4",
+            "flex min-[390px]:hidden text-xs  font-medium !px-3 sm:!px-4",
             fullWidth && "!w-full !hidden"
           )}
         >
@@ -292,8 +294,9 @@ export function CreateRoomBtn({
                 size="default"
                 onClick={handleCreateRoomClick}
                 className={clsx(
-                  "hidden min-[390px]:flex text-xs rounded-sm font-semibold !px-3 sm:!px-4",
-                  fullWidth && "!w-full flex"
+                  "hidden min-[390px]:flex  font-semibold !px-3 sm:!px-4",
+                  fullWidth && "!w-full flex",
+                  btnClassName
                 )}
               >
                 <Plus />
@@ -305,7 +308,7 @@ export function CreateRoomBtn({
                 size="icon"
                 onClick={handleCreateRoomClick}
                 className={clsx(
-                  "flex min-[390px]:hidden text-xs rounded-sm font-medium !px-3 sm:!px-4",
+                  "flex min-[390px]:hidden text-xs  font-medium !px-3 sm:!px-4",
                   fullWidth && "!hidden"
                 )}
               >
