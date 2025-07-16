@@ -1,7 +1,10 @@
 "use client";
 
 import { IRoom } from "@/interfaces/room.interface";
-import { getRoomBackgroundStyle, getRoomImageUrl } from "@/lib/room-utils";
+import {
+  getRoomBackgroundStyle,
+  getRoomImageUrl,
+} from "@/lib/utils/room.utils";
 import clsx from "clsx";
 import Image from "next/image";
 import { useState } from "react";

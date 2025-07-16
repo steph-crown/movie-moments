@@ -582,7 +582,7 @@ export function MessageList({
         className="flex-1 overflow-y-auto"
       >
         {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
+          <div className="flex items-center justify-center h-full px-6">
             <div className="text-center text-muted-foreground max-w-md">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted flex items-center justify-center">
                 <Reply className="h-8 w-8" />

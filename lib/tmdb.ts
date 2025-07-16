@@ -32,8 +32,6 @@ export async function searchTMDBMovies(query: string): Promise<SearchResult[]> {
 
   const data: TMDBSearchResponse = await response.json();
 
-  console.log("result from search movies", data);
-
   return (data.results as TMDBMovie[]).map((movie) => ({
     tmdb_id: movie.id,
     title: movie.title,
@@ -46,6 +44,7 @@ export async function searchTMDBMovies(query: string): Promise<SearchResult[]> {
     popularity: movie.popularity,
     vote_average: movie.vote_average,
     vote_count: movie.vote_count,
+    seasons: [],
   }));
 }
 
@@ -66,6 +65,8 @@ export async function searchTMDBTVShows(
 
   const data: TMDBSearchResponse = await response.json();
 
+  // console.log({ outofmyhead: data.results?.[1] });
+
   // console.log("result from search shows", data);
 
   return (data.results as TMDBTVShow[]).map((show) => ({
@@ -80,6 +81,7 @@ export async function searchTMDBTVShows(
     popularity: show.popularity,
     vote_average: show.vote_average,
     vote_count: show.vote_count,
+    seasons: show.seasons,
   }));
 }
 
@@ -97,6 +99,8 @@ export async function fetchMovieDetails(
   }
 
   const movie: TMDBMovieDetails = await response.json();
+
+  console.log({ flowniggaa: movie });
 
   return {
     tmdb_id: movie.id,

@@ -47,7 +47,7 @@ export async function searchContent(
       results: results,
     });
 
-    console.log({ contenttobecached: results.length });
+    // console.log({ contenttobecached: results?.[2] });
 
     // Optionally pre-cache individual content items
     for (const item of results.slice(0, 5)) {

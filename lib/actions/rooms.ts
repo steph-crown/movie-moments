@@ -2,13 +2,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { generateRoomCode } from "@/lib/room-utils";
+import { generateRoomCode } from "@/lib/utils/room.utils";
 import { revalidatePath } from "next/cache";
 import {
   CreateRoomData,
   IRoom,
   RoomParticipant,
 } from "@/interfaces/room.interface";
+import { fetchDetailedContent } from "../tmdb";
 
 export type RoomFilter = "all" | "created" | "joined" | "invited";
 export type RoomSort = "last_updated" | "date_created" | "alphabetical";
@@ -268,6 +269,7 @@ export async function createRoom(
     release_date?: string;
     first_air_date?: string;
     runtime?: number;
+    seasons?: any[];
     number_of_seasons?: number;
     number_of_episodes?: number;
     genres?: any[];
@@ -281,6 +283,7 @@ export async function createRoom(
   };
   error?: string;
 }> {
+  console.log({ thecontentdata: contentData });
   try {
     const supabase = await createClient();
 
@@ -319,6 +322,7 @@ export async function createRoom(
           runtime: contentData.runtime || null,
           number_of_seasons: contentData.number_of_seasons || null,
           number_of_episodes: contentData.number_of_episodes || null,
+          seasons: contentData.seasons || [],
           genres: contentData.genres || [],
         });
 
@@ -1127,5 +1131,69 @@ export async function joinRoomByCode(roomCodeOrLink: string): Promise<{
   } catch (error) {
     console.error("Error in joinRoomByCode:", error);
     return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function updateContentCacheWithDetailsIfNeeded(
+  tmdbId: number,
+  contentType: "movie" | "series"
+): Promise<{
+  success: boolean;
+  error?: string;
+  wasUpdated?: boolean;
+  detailedContent?: any;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Check if we already have detailed data
+    const { data: existingContent } = await supabase
+      .from("content_cache")
+      .select("seasons, detailed_fetched_at")
+      .eq("tmdb_id", tmdbId)
+      .eq("content_type", contentType)
+      .single();
+
+    // Skip if we already have detailed data
+    const hasDetailedData =
+      contentType === "series"
+        ? existingContent?.seasons && existingContent.seasons.length > 0
+        : existingContent?.detailed_fetched_at;
+
+    if (hasDetailedData) {
+      return {
+        success: true,
+        wasUpdated: false,
+        detailedContent: { seasons: existingContent?.seasons },
+      };
+    }
+
+    // Fetch detailed content from TMDB
+    const detailedContent = await fetchDetailedContent(tmdbId, contentType);
+
+    console.log({ heatyyyyyy: detailedContent.seasons });
+
+    // Update the content_cache record
+    const { error: updateError } = await supabase
+      .from("content_cache")
+      .update({
+        seasons: detailedContent.seasons || [],
+        number_of_seasons: detailedContent.number_of_seasons,
+        number_of_episodes: detailedContent.number_of_episodes,
+        detailed_fetched_at: new Date().toISOString(),
+        last_accessed: new Date().toISOString(),
+      })
+      .eq("tmdb_id", tmdbId)
+      .eq("content_type", contentType);
+
+    if (updateError) {
+      console.error("Error updating content cache:", updateError);
+      return { success: false, error: "Failed to update content cache" };
+    }
+
+    return { success: true, wasUpdated: true, detailedContent };
+  } catch (error) {
+    console.error("Error in updateContentCacheWithDetailsIfNeeded:", error);
+    return { success: false, error: "Failed to fetch detailed content" };
   }
 }

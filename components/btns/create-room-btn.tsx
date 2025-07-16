@@ -9,7 +9,10 @@ import {
   StreamingPlatform,
 } from "@/interfaces/room.interface";
 import { SearchResult } from "@/interfaces/tmdb.interface";
-import { createRoom } from "@/lib/actions/rooms";
+import {
+  createRoom,
+  updateContentCacheWithDetailsIfNeeded,
+} from "@/lib/actions/rooms";
 import { zodResolver } from "@hookform/resolvers/zod";
 import clsx from "clsx";
 import { Edit2, Plus, Search } from "lucide-react";
@@ -50,6 +53,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import { SeasonsAndEpisodeSelector } from "../season-episode-selector";
+import { SeasonData } from "@/lib/utils/season.utils";
 
 const STREAMING_PLATFORMS: StreamingPlatform[] = [
   "Netflix",
@@ -165,11 +170,34 @@ export function CreateRoomBtn({
     form.setValue("title", "");
   };
 
+  console.log({ spirrtititi: selectedContent });
+
   const handleContentSelect = (content: SearchResult) => {
     setSelectedContent(content);
     form.setValue("content_tmdb_id", content.tmdb_id);
     form.setValue("title", content.title); // Default room title to content title
     setStep("details");
+
+    // fetch more details, like seasons and numberOfSeasons
+    if (content.content_type === "series") {
+      updateContentCacheWithDetailsIfNeeded(
+        content.tmdb_id,
+        content.content_type
+      )
+        .then((result) => {
+          setSelectedContent((prev) => ({
+            ...(prev || content),
+            seasons: result.detailedContent?.seasons,
+          }));
+          console.log({ theresult: result });
+          if (result.success && result.wasUpdated) {
+            console.log("Content cache updated with detailed information");
+          }
+        })
+        .catch((error) => {
+          console.warn("Background content cache update failed:", error);
+        });
+    }
   };
 
   const handleChangeContent = () => {
@@ -177,6 +205,8 @@ export function CreateRoomBtn({
     setSelectedContent(null);
     form.setValue("content_tmdb_id", 0 as any);
   };
+
+  console.log({ selectedContent });
 
   async function onSubmit(data: FormData) {
     if (!user || !selectedContent) {
@@ -208,6 +238,7 @@ export function CreateRoomBtn({
         backdrop_path: selectedContent.backdrop_path,
         release_date: selectedContent.release_date,
         first_air_date: selectedContent.first_air_date,
+        seasons: selectedContent.seasons,
       };
 
       const result = await createRoom(roomData, contentData);
@@ -604,7 +635,7 @@ export function CreateRoomBtn({
                       />
 
                       {/* Starting Episode (Series only) */}
-                      {contentType === "series" && (
+                      {/* {contentType === "series" && (
                         <div className="grid grid-cols-2 gap-4">
                           <FormField
                             control={form.control}
@@ -619,7 +650,7 @@ export function CreateRoomBtn({
                                   defaultValue={field.value?.toString()}
                                 >
                                   <FormControl>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="w-full">
                                       <SelectValue />
                                     </SelectTrigger>
                                   </FormControl>
@@ -638,6 +669,7 @@ export function CreateRoomBtn({
                               </FormItem>
                             )}
                           />
+
                           <FormField
                             control={form.control}
                             name="starting_episode"
@@ -651,7 +683,7 @@ export function CreateRoomBtn({
                                   defaultValue={field.value?.toString()}
                                 >
                                   <FormControl>
-                                    <SelectTrigger>
+                                    <SelectTrigger className="w-full">
                                       <SelectValue />
                                     </SelectTrigger>
                                   </FormControl>
@@ -672,6 +704,28 @@ export function CreateRoomBtn({
                               </FormItem>
                             )}
                           />
+                        </div>
+                      )} */}
+
+                      {contentType === "series" && selectedContent?.seasons && (
+                        <div className="space-y-3">
+                          <SeasonsAndEpisodeSelector
+                            seasons={selectedContent.seasons}
+                            defaultSeason={form.watch("starting_season") || 1}
+                            defaultEpisode={form.watch("starting_episode") || 1}
+                            onSeasonChange={(season: SeasonData) => {
+                              form.setValue("starting_season", season.number);
+                            }}
+                            onEpisodeChange={(episode: number) => {
+                              form.setValue("starting_episode", episode);
+                            }}
+                            seasonLabel="Starting Season"
+                            episodeLabel="Starting Episode"
+                            showTimestamp={true} // Don't show timestamp in room creation
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Choose where your group will begin watching together
+                          </p>
                         </div>
                       )}
 

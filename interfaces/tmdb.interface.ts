@@ -33,6 +33,7 @@ export interface TMDBTVShow {
   popularity: number;
   vote_average: number;
   vote_count: number;
+  seasons: any[];
 }
 
 export interface SearchResult {
@@ -45,6 +46,7 @@ export interface SearchResult {
   release_date?: string;
   first_air_date?: string;
   genre_ids: number[];
+  seasons: any[];
 }
 
 // Add these new interfaces to your existing tmdb.interface.ts
@@ -217,4 +219,5 @@ export interface SearchResult {
   popularity: number;
   vote_average: number;
   vote_count: number;
+  seasons: any[];
 }

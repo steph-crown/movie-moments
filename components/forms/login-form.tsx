@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/string.utils";
 import Link from "next/link";
 import { GoogleSignInBtn } from "../btns/google-sign-in-btn";
 import { Logo } from "../logo";

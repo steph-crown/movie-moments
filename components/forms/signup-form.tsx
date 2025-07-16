@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useDisplayStateError } from "@/hooks/use-display-state-error";
 import { useFormErrorReset } from "@/hooks/use-form-error-reset";
 import { INITIAL_FORM_ACTION_STATE } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/string.utils";
 import Link from "next/link";
 import { useActionState, useState, useEffect } from "react";
 import { GoogleSignInBtn } from "../btns/google-sign-in-btn";
