@@ -225,9 +225,6 @@ export function ChatInput({
         open={showPositionDialog}
         onSuccess={handlePositionDialogSuccess}
         onOpenChange={setShowPositionDialog}
-        initialSeason={userPosition?.current_season}
-        initialEpisode={userPosition?.current_episode}
-        initialTimestamp={userPosition?.playback_timestamp}
         allowClose={true}
       />
     </>

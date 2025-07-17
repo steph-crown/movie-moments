@@ -155,8 +155,8 @@ function MessageItem({
       id={`message-${message.id}`}
       className={clsx(
         "group px-4 py-1 hover:bg-muted/20 transition-all duration-300 relative",
-        isOwnMessage ? "flex justify-end" : "flex justify-start",
-        isHighlighted && "ring-2 ring-primary/50 bg-primary/5"
+        isOwnMessage ? "flex justify-end" : "flex justify-start"
+        // isHighlighted && "ring-2 ring-primary/50 bg-primary/5"
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}

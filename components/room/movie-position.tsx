@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // components/room/movie-position.tsx
 "use client";
 
@@ -30,7 +31,7 @@ export function MoviePosition({ room }: MoviePositionProps) {
   });
 
   // Use the shared position context
-  const { position: userPosition, loading, updatePosition } = useUserPosition();
+  const { position: userPosition, loading } = useUserPosition();
 
   // Load participants and calculate stats
   useEffect(() => {
@@ -219,9 +220,6 @@ export function MoviePosition({ room }: MoviePositionProps) {
         open={showPositionDialog}
         onSuccess={handlePositionDialogSuccess}
         onOpenChange={setShowPositionDialog}
-        initialSeason={userPosition?.current_season}
-        initialEpisode={userPosition?.current_episode}
-        initialTimestamp={userPosition?.playback_timestamp}
         allowClose={true}
       />
     </>
