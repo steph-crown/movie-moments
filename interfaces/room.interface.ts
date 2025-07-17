@@ -4,17 +4,15 @@ export interface RoomWithoutParticipants {
   id: string;
   room_code: string; // ABC123 format for sharing
   title: string;
-  // content_type: "movie" | "series";
   content_tmdb_id: number;
   content: ICachedContent;
   streaming_platform: StreamingPlatform; // Netflix, Disney+, Hulu, etc.
   privacy_level: PrivacyLevel;
   spoiler_policy: SpoilerPolicy;
-  // thumbnail_url: string;
 
-  // Content information
-  season_number?: number; // null for movies
-  episode_number?: number; // null for movies
+  // REMOVED: Content information is now in participants table
+  // season_number?: number; // null for movies
+  // episode_number?: number; // null for movies
   total_seasons?: number; // null for movies
 
   // Room management
@@ -35,10 +33,10 @@ export interface IRoom extends RoomWithoutParticipants {
   member_count: number;
   unread_count: number; // For current user
 
-  // Current content position (most common among participants)
-  current_movie?: string;
-  current_episode?: string; // S1E4 format
-  current_timestamp?: number; // seconds
+  // REMOVED: Current content position is now per-participant
+  // current_movie?: string;
+  // current_episode?: string; // S1E4 format
+  // current_timestamp?: number; // seconds
 
   // For invitations
   invited_by?: string; // username
@@ -64,9 +62,9 @@ export interface ParticipantPreview {
   avatar_url?: string;
   status: ParticipantStatus;
   last_seen: string;
-  current_season?: number;
+  current_season?: string; // Changed to string for encoded data
   current_episode?: number;
-  current_timestamp?: number;
+  current_timestamp?: string; // Changed to string for time format
 }
 
 export interface RoomParticipant {
@@ -79,9 +77,9 @@ export interface RoomParticipant {
   join_method: "created" | "invited_email" | "invited_username" | "public_link";
   joined_at: string | null;
   last_seen: string | null;
-  current_season: string | null; // Fixed: Changed from number to string
+  current_season: string | null; // Encoded season data
   current_episode: number | null;
-  playback_timestamp: string | null; // Fixed: Changed from number to string
+  playback_timestamp: string | null; // Time format like "1:23:45"
   position_updated_at: string | null;
   // Profile data from join
   profile?: {
@@ -98,9 +96,10 @@ export interface CreateRoomData {
   streaming_platform: string;
   privacy_level: PrivacyLevel;
   spoiler_policy: SpoilerPolicy;
-  starting_season?: string; // Fixed: Changed from number to string
+  // These are used only to set the creator's initial position in room_participants
+  starting_season?: string; // Encoded season data
   starting_episode?: number;
-  playback_timestamp?: string; // Fixed: Added this field
+  playback_timestamp?: string; // Time format
 }
 
 // Room update payload
@@ -170,10 +169,10 @@ export interface ICachedContent {
   runtime?: number; // Only for movies
   number_of_seasons?: number; // Only for series
   number_of_episodes?: number; // Only for series
+  seasons?: any[]; // Added: Include seasons for position selector
   genres: any[];
   first_air_date?: string;
   platforms?: string[];
-  // seasons?: any[]; // Only for series
   cached_at: string;
   last_accessed: string;
 }

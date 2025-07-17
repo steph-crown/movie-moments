@@ -24,6 +24,8 @@ export interface FetchRoomsParams {
   limit?: number;
 }
 
+// Updated fetchUserRooms - remove starting_season/starting_episode from query
+
 export async function fetchUserRooms({
   filter = "all",
   sort = "last_updated",
@@ -75,8 +77,6 @@ export async function fetchUserRooms({
           streaming_platform,
           privacy_level,
           spoiler_policy,
-          starting_season,
-          starting_episode,
           creator_id,
           status,
           is_permanent,
@@ -94,6 +94,7 @@ export async function fetchUserRooms({
             runtime,
             number_of_seasons,
             number_of_episodes,
+            seasons,
             genres,
             release_date,
             first_air_date,
@@ -147,7 +148,7 @@ export async function fetchUserRooms({
       return { success: false, error: "Failed to fetch rooms" };
     }
 
-    // Transform data first
+    // Transform data - REMOVED season_number and episode_number from room
     const rooms: IRoom[] = data.map((item: any) => {
       const room = item.rooms;
       const cachedContent = room.content_cache;
@@ -169,6 +170,7 @@ export async function fetchUserRooms({
               runtime: cachedContent.runtime,
               number_of_seasons: cachedContent.number_of_seasons,
               number_of_episodes: cachedContent.number_of_episodes,
+              seasons: cachedContent.seasons || [], // Include seasons for position selector
               genres: cachedContent.genres || [],
               release_date: cachedContent.release_date,
               first_air_date: cachedContent.first_air_date,
@@ -183,6 +185,7 @@ export async function fetchUserRooms({
               title: room.title,
               poster_path: "",
               backdrop_path: "",
+              seasons: [],
               genres: [],
               cached_at: new Date().toISOString(),
               last_accessed: new Date().toISOString(),
@@ -190,8 +193,7 @@ export async function fetchUserRooms({
         streaming_platform: room.streaming_platform,
         privacy_level: room.privacy_level,
         spoiler_policy: room.spoiler_policy,
-        season_number: room.starting_season,
-        episode_number: room.starting_episode,
+        // REMOVED: season_number and episode_number
         creator_id: room.creator_id,
         status: room.status,
         is_permanent: room.is_permanent,
@@ -256,6 +258,8 @@ export async function fetchUserRooms({
     };
   }
 }
+
+// Updated createRoom function - remove starting_season and starting_episode from room creation
 
 export async function createRoom(
   data: CreateRoomData,
@@ -360,19 +364,7 @@ export async function createRoom(
       return { success: false, error: "Failed to generate unique room code" };
     }
 
-    // Parse starting season if it's encoded
-    let startingSeason = null;
-    if (data.starting_season) {
-      if (data.starting_season.includes("|")) {
-        // It's encoded, extract the season number
-        const parts = data.starting_season.split("|");
-        startingSeason = parseInt(parts[0]);
-      } else {
-        startingSeason = parseInt(data.starting_season);
-      }
-    }
-
-    // Create the room
+    // Create the room - REMOVED starting_season and starting_episode
     const { data: room, error: createError } = await supabase
       .from("rooms")
       .insert({
@@ -383,8 +375,6 @@ export async function createRoom(
         streaming_platform: data.streaming_platform,
         privacy_level: data.privacy_level,
         spoiler_policy: data.spoiler_policy,
-        starting_season: startingSeason,
-        starting_episode: data.starting_episode || null,
         creator_id: user.id,
       })
       .select("id, room_code, title")
@@ -395,7 +385,7 @@ export async function createRoom(
       return { success: false, error: "Failed to create room" };
     }
 
-    // Create room participant entry for creator - Fixed to include playback_timestamp
+    // Create room participant entry for creator with initial position
     const { error: participantError } = await supabase
       .from("room_participants")
       .insert({
@@ -407,9 +397,9 @@ export async function createRoom(
         invited_at: new Date().toISOString(),
         joined_at: new Date().toISOString(),
         last_seen: new Date().toISOString(),
-        current_season: data.starting_season || null, // Store encoded season
+        current_season: data.starting_season || null, // Store encoded season from form
         current_episode: data.starting_episode || null,
-        playback_timestamp: data.playback_timestamp || "0:00", // Fixed: Store timestamp
+        playback_timestamp: data.playback_timestamp || "0:00",
         position_updated_at: new Date().toISOString(),
       });
 
@@ -438,6 +428,8 @@ export async function createRoom(
     };
   }
 }
+
+// Updated fetchRoomByCode - remove starting_season/starting_episode from room data
 
 export async function fetchRoomByCode(
   roomCode: string,
@@ -479,7 +471,7 @@ export async function fetchRoomByCode(
       };
     }
 
-    // Get room data
+    // Get room data - REMOVED starting_season and starting_episode
     const { data: roomData, error: roomError } = await supabase
       .from("rooms")
       .select(
@@ -492,8 +484,6 @@ export async function fetchRoomByCode(
         streaming_platform,
         privacy_level,
         spoiler_policy,
-        starting_season,
-        starting_episode,
         creator_id,
         status,
         is_permanent,
@@ -511,6 +501,7 @@ export async function fetchRoomByCode(
           runtime,
           number_of_seasons,
           number_of_episodes,
+          seasons,
           genres,
           release_date,
           first_air_date,
@@ -524,7 +515,6 @@ export async function fetchRoomByCode(
 
     if (roomError || !roomData) {
       if (!user) {
-        // ask to login to confirm that they have access to the private room
         return {
           success: false,
           error: "Authentication required",
@@ -549,7 +539,7 @@ export async function fetchRoomByCode(
 
     let userStatus: "not_member" | "pending" | "joined" | "left" = "not_member";
     let participantId: string | undefined;
-    let participantData: any = null; // Declare here so it's accessible in the room object
+    let participantData: any = null;
 
     // Only check participation if user is authenticated
     if (user) {
@@ -560,7 +550,7 @@ export async function fetchRoomByCode(
         .eq("user_id", user.id)
         .single();
 
-      participantData = fetchedParticipantData; // Assign to the outer variable
+      participantData = fetchedParticipantData;
 
       if (participantData) {
         userStatus = participantData.status as "pending" | "joined" | "left";
@@ -586,7 +576,7 @@ export async function fetchRoomByCode(
       }
     }
 
-    // Transform room data
+    // Transform room data - REMOVED season_number and episode_number from room
     const cachedContent = roomData.content_cache as any;
     const room: IRoom = {
       id: roomData.id,
@@ -605,6 +595,7 @@ export async function fetchRoomByCode(
             runtime: cachedContent.runtime,
             number_of_seasons: cachedContent.number_of_seasons,
             number_of_episodes: cachedContent.number_of_episodes,
+            seasons: cachedContent.seasons || [], // Include seasons for position selector
             genres: cachedContent.genres || [],
             release_date: cachedContent.release_date,
             first_air_date: cachedContent.first_air_date,
@@ -619,6 +610,7 @@ export async function fetchRoomByCode(
             title: roomData.title,
             poster_path: "",
             backdrop_path: "",
+            seasons: [],
             genres: [],
             cached_at: new Date().toISOString(),
             last_accessed: new Date().toISOString(),
@@ -626,8 +618,7 @@ export async function fetchRoomByCode(
       streaming_platform: roomData.streaming_platform,
       privacy_level: roomData.privacy_level,
       spoiler_policy: roomData.spoiler_policy,
-      season_number: roomData.starting_season,
-      episode_number: roomData.starting_episode,
+      // REMOVED: season_number and episode_number are no longer on room
       creator_id: roomData.creator_id,
       status: roomData.status,
       is_permanent: roomData.is_permanent,
@@ -1210,5 +1201,104 @@ export async function updateContentCacheWithDetailsIfNeeded(
   } catch (error) {
     console.error("Error in updateContentCacheWithDetailsIfNeeded:", error);
     return { success: false, error: "Failed to fetch detailed content" };
+  }
+}
+
+// Add this to your room actions file
+
+export async function updateParticipantPosition(
+  roomId: string,
+  seasonData?: {
+    season: string; // encoded season data
+    episode: number;
+    timestamp: string;
+  }
+): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "You must be logged in" };
+    }
+
+    // Update the participant's current position
+    const { error: updateError } = await supabase
+      .from("room_participants")
+      .update({
+        current_season: seasonData?.season || null,
+        current_episode: seasonData?.episode || null,
+        playback_timestamp: seasonData?.timestamp || "0:00",
+        position_updated_at: new Date().toISOString(),
+        last_seen: new Date().toISOString(),
+      })
+      .eq("room_id", roomId)
+      .eq("user_id", user.id);
+
+    if (updateError) {
+      console.error("Error updating participant position:", updateError);
+      return { success: false, error: "Failed to update position" };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error in updateParticipantPosition:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// Get current user's position in room
+export async function getCurrentUserPosition(roomId: string): Promise<{
+  success: boolean;
+  data?: {
+    current_season: string | null;
+    current_episode: number | null;
+    playback_timestamp: string | null;
+  };
+  error?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "You must be logged in" };
+    }
+
+    // Get participant's current position
+    const { data: participant, error } = await supabase
+      .from("room_participants")
+      .select("current_season, current_episode, playback_timestamp")
+      .eq("room_id", roomId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (error) {
+      console.error("Error fetching participant position:", error);
+      return { success: false, error: "Failed to fetch position" };
+    }
+
+    return {
+      success: true,
+      data: {
+        current_season: participant.current_season,
+        current_episode: participant.current_episode,
+        playback_timestamp: participant.playback_timestamp,
+      },
+    };
+  } catch (error) {
+    console.error("Error in getCurrentUserPosition:", error);
+    return { success: false, error: "An unexpected error occurred" };
   }
 }
