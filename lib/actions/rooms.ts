@@ -1190,8 +1190,8 @@ export async function updateContentCacheWithDetailsIfNeeded(
 export async function updateParticipantPosition(
   roomId: string,
   seasonData?: {
-    season: string; // encoded season data
-    episode: number;
+    season: string | null; // encoded season data
+    episode: number | null;
     timestamp: string;
   }
 ): Promise<{

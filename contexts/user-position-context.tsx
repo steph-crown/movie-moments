@@ -38,8 +38,8 @@ interface UserPositionContextType {
   loading: boolean;
   error: string | null;
   updatePosition: (data: {
-    season: string;
-    episode: number;
+    season: string | null;
+    episode: number | null;
     timestamp: string;
   }) => Promise<boolean>;
   refreshPosition: () => Promise<void>;
@@ -254,8 +254,8 @@ export function UserPositionProvider({
 
   const updatePosition = useCallback(
     async (data: {
-      season: string;
-      episode: number;
+      season: string | null;
+      episode: number | null;
       timestamp: string;
     }): Promise<boolean> => {
       if (!room?.id) return false;
