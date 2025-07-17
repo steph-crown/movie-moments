@@ -12,10 +12,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { SeasonData, decodeSeasonData } from "@/lib/utils/season.utils";
-import { updateParticipantPosition } from "@/lib/actions/rooms";
 import { IRoom } from "@/interfaces/room.interface";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { useUserPosition } from "@/contexts/user-position-context";
 import { SeasonsAndEpisodeSelector } from "../season-episode-selector";
 
 interface PositionSetupDialogProps {
@@ -23,10 +23,6 @@ interface PositionSetupDialogProps {
   open: boolean;
   onSuccess: () => void;
   onOpenChange?: (open: boolean) => void;
-  // Prefill values for updates
-  initialSeason?: string | null;
-  initialEpisode?: number | null;
-  initialTimestamp?: string | null;
   // Allow closing for updates (but not for initial setup)
   allowClose?: boolean;
 }
@@ -36,9 +32,6 @@ export function PositionSetupDialog({
   open,
   onSuccess,
   onOpenChange,
-  initialSeason = null,
-  initialEpisode = 1,
-  initialTimestamp = "0:00",
   allowClose = false,
 }: PositionSetupDialogProps) {
   const [selectedSeason, setSelectedSeason] = useState<string | null>(null);
@@ -46,18 +39,23 @@ export function PositionSetupDialog({
   const [selectedTimestamp, setSelectedTimestamp] = useState<string>("0:00");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Initialize with prefilled values
+  // Use the shared position context
+  const { position, updatePosition } = useUserPosition();
+
+  // Initialize with current position when dialog opens
   useEffect(() => {
-    if (initialSeason) {
-      setSelectedSeason(initialSeason);
+    if (open && position) {
+      if (position.current_season) {
+        setSelectedSeason(position.current_season);
+      }
+      if (position.current_episode) {
+        setSelectedEpisode(position.current_episode);
+      }
+      if (position.playback_timestamp) {
+        setSelectedTimestamp(position.playback_timestamp);
+      }
     }
-    if (initialEpisode) {
-      setSelectedEpisode(initialEpisode);
-    }
-    if (initialTimestamp) {
-      setSelectedTimestamp(initialTimestamp);
-    }
-  }, [initialSeason, initialEpisode, initialTimestamp]);
+  }, [open, position]);
 
   const handleSeasonChange = (season: SeasonData) => {
     const encodedSeason = `${season.number}|${season.name}|${season.id}|${season.episodeCount}`;
@@ -81,17 +79,18 @@ export function PositionSetupDialog({
     setIsSubmitting(true);
 
     try {
-      const result = await updateParticipantPosition(room.id, {
+      // Use the context's updatePosition method instead of direct API call
+      const success = await updatePosition({
         season: selectedSeason,
         episode: selectedEpisode,
         timestamp: selectedTimestamp,
       });
 
-      if (result.success) {
+      if (success) {
         toast.success("Position updated successfully!");
         onSuccess();
       } else {
-        toast.error(result.error || "Failed to update position");
+        toast.error("Failed to update position");
       }
     } catch (error) {
       console.error("Position update error:", error);
@@ -114,12 +113,12 @@ export function PositionSetupDialog({
 
   // Get default values for the selector
   let defaultSeasonNumber = 1;
-  if (initialSeason) {
+  if (position?.current_season) {
     try {
-      const decoded = decodeSeasonData(initialSeason);
+      const decoded = decodeSeasonData(position.current_season);
       defaultSeasonNumber = decoded.number;
     } catch {
-      defaultSeasonNumber = parseInt(initialSeason) || 1;
+      defaultSeasonNumber = parseInt(position.current_season) || 1;
     }
   }
 
@@ -140,8 +139,8 @@ export function PositionSetupDialog({
           <SeasonsAndEpisodeSelector
             seasons={room.content.seasons}
             defaultSeason={defaultSeasonNumber}
-            defaultEpisode={initialEpisode || 1}
-            defaultTimestamp={initialTimestamp || "0:00"}
+            defaultEpisode={position?.current_episode || 1}
+            defaultTimestamp={position?.playback_timestamp || "0:00"}
             onSeasonChange={handleSeasonChange}
             onEpisodeChange={handleEpisodeChange}
             onTimestampChange={handleTimestampChange}

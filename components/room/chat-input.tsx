@@ -7,8 +7,8 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { IRoom } from "@/interfaces/room.interface";
 import { PositionSetupDialog } from "./position-setup-dialog";
-import { getCurrentUserPosition } from "@/lib/actions/rooms";
 import { decodeSeasonData } from "@/lib/utils/season.utils";
+import { useUserPosition } from "@/contexts/user-position-context";
 
 interface ChatInputProps {
   className?: string;
@@ -16,9 +16,9 @@ interface ChatInputProps {
   onSendMessage: (
     message: string,
     options?: {
-      currentSeason?: string; // Changed: Now string for encoded season
+      currentSeason?: string;
       currentEpisode?: number;
-      playbackTimestamp?: string; // Changed: Now string for time format
+      playbackTimestamp?: string;
       parentMessageId?: string;
     }
   ) => Promise<void>;
@@ -41,39 +41,21 @@ export function ChatInput({
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [showPositionDialog, setShowPositionDialog] = useState(false);
-  const [userPosition, setUserPosition] = useState<{
-    current_season: string | null;
-    current_episode: number | null;
-    playback_timestamp: string | null;
-  } | null>(null);
-  const [loadingPosition, setLoadingPosition] = useState(true);
 
-  // Load user's current position
+  // Use the shared position context
+  const { position: userPosition, loading: loadingPosition } =
+    useUserPosition();
+
+  // Show position dialog for new series participants
   useEffect(() => {
-    const loadUserPosition = async () => {
-      setLoadingPosition(true);
-      try {
-        const result = await getCurrentUserPosition(room.id);
-        if (result.success && result.data) {
-          setUserPosition(result.data);
-
-          // Show dialog if user doesn't have position set for series
-          if (
-            room.content.content_type === "series" &&
-            (!result.data.current_season || !result.data.current_episode)
-          ) {
-            setShowPositionDialog(true);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading user position:", error);
-      } finally {
-        setLoadingPosition(false);
-      }
-    };
-
-    loadUserPosition();
-  }, [room.id, room.content.content_type]);
+    if (
+      room.content.content_type === "series" &&
+      !loadingPosition &&
+      (!userPosition?.current_season || !userPosition?.current_episode)
+    ) {
+      setShowPositionDialog(true);
+    }
+  }, [room.content.content_type, loadingPosition, userPosition]);
 
   const adjustHeight = () => {
     const textarea = textareaRef.current;
@@ -90,7 +72,7 @@ export function ChatInput({
 
     setSending(true);
     try {
-      // Send message with current position data
+      // Send message with current position data from context
       await onSendMessage(message.trim(), {
         currentSeason: userPosition?.current_season || undefined,
         currentEpisode: userPosition?.current_episode || undefined,
@@ -152,11 +134,7 @@ export function ChatInput({
 
   const handlePositionDialogSuccess = async () => {
     setShowPositionDialog(false);
-    // Reload user position
-    const result = await getCurrentUserPosition(room.id);
-    if (result.success && result.data) {
-      setUserPosition(result.data);
-    }
+    // Position context will automatically update via optimistic updates
   };
 
   const handlePositionClick = () => {

@@ -1,21 +1,18 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 // components/room/movie-position.tsx
 "use client";
 
-import { IRoom, RoomParticipant } from "@/interfaces/room.interface";
-import {
-  getCurrentUserPosition,
-  getRoomParticipants,
-} from "@/lib/actions/rooms";
-import { decodeSeasonData } from "@/lib/utils/season.utils";
 import { Clock2 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
+import { useState, useEffect } from "react";
 import { PositionSetupDialog } from "./position-setup-dialog";
+import { getRoomParticipants } from "@/lib/actions/rooms";
+import { IRoom, RoomParticipant } from "@/interfaces/room.interface";
+import { decodeSeasonData } from "@/lib/utils/season.utils";
+import { useUserPosition } from "@/contexts/user-position-context";
 
 interface MoviePositionProps {
-  room?: IRoom;
+  room: IRoom;
 }
 
 interface PositionStats {
@@ -26,46 +23,32 @@ interface PositionStats {
 
 export function MoviePosition({ room }: MoviePositionProps) {
   const [showPositionDialog, setShowPositionDialog] = useState(false);
-  const [userPosition, setUserPosition] = useState<{
-    current_season: string | null;
-    current_episode: number | null;
-    playback_timestamp: string | null;
-  } | null>(null);
   const [positionStats, setPositionStats] = useState<PositionStats>({
     inSync: 0,
     behind: 0,
     ahead: 0,
   });
-  const [loading, setLoading] = useState(true);
 
-  // Load user position and calculate stats
+  // Use the shared position context
+  const { position: userPosition, loading, updatePosition } = useUserPosition();
+
+  // Load participants and calculate stats
   useEffect(() => {
-    const loadPositionData = async () => {
-      if (!room) return;
+    const loadPositionStats = async () => {
+      if (!room?.id || !userPosition) return;
 
-      setLoading(true);
       try {
-        // Get user position
-        const positionResult = await getCurrentUserPosition(room.id);
-        if (positionResult.success && positionResult.data) {
-          setUserPosition(positionResult.data);
-        }
-
-        // Get all participants to calculate stats
         const participantsResult = await getRoomParticipants(room.id);
-        console.log({ participantsResult });
         if (participantsResult.success && participantsResult.data) {
-          calculatePositionStats(positionResult.data!, participantsResult.data);
+          calculatePositionStats(userPosition, participantsResult.data);
         }
       } catch (error) {
-        console.error("Error loading position data:", error);
-      } finally {
-        setLoading(false);
+        console.error("Error loading position stats:", error);
       }
     };
 
-    loadPositionData();
-  }, [room]);
+    loadPositionStats();
+  }, [room?.id, userPosition]);
 
   const calculatePositionStats = (
     currentUserPosition: typeof userPosition,
@@ -160,10 +143,7 @@ export function MoviePosition({ room }: MoviePositionProps) {
       return "Loading...";
     }
 
-    if (
-      room?.content.content_type === "series" &&
-      userPosition.current_season
-    ) {
+    if (room.content.content_type === "series" && userPosition.current_season) {
       try {
         const seasonData = decodeSeasonData(userPosition.current_season);
         const episode = userPosition.current_episode || 1;
@@ -183,20 +163,12 @@ export function MoviePosition({ room }: MoviePositionProps) {
 
   const handlePositionDialogSuccess = async () => {
     setShowPositionDialog(false);
-    // Reload position data
-    if (room) {
-      const result = await getCurrentUserPosition(room.id);
-      if (result.success && result.data) {
-        setUserPosition(result.data);
-      }
-    }
+    // Position context will automatically update via optimistic updates
   };
 
   const handleUpdateClick = () => {
     setShowPositionDialog(true);
   };
-
-  if (!room) return null;
 
   return (
     <>
@@ -242,18 +214,16 @@ export function MoviePosition({ room }: MoviePositionProps) {
       </div>
 
       {/* Position Update Dialog */}
-      {room && (
-        <PositionSetupDialog
-          room={room}
-          open={showPositionDialog}
-          onSuccess={handlePositionDialogSuccess}
-          onOpenChange={setShowPositionDialog}
-          initialSeason={userPosition?.current_season}
-          initialEpisode={userPosition?.current_episode}
-          initialTimestamp={userPosition?.playback_timestamp}
-          allowClose={true}
-        />
-      )}
+      <PositionSetupDialog
+        room={room}
+        open={showPositionDialog}
+        onSuccess={handlePositionDialogSuccess}
+        onOpenChange={setShowPositionDialog}
+        initialSeason={userPosition?.current_season}
+        initialEpisode={userPosition?.current_episode}
+        initialTimestamp={userPosition?.playback_timestamp}
+        allowClose={true}
+      />
     </>
   );
 }

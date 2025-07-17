@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
+import { UserPositionProvider } from "@/contexts/user-position-context";
 
 // Update your page component to pass room to MoviePosition and fix message sending
 
@@ -243,26 +244,29 @@ export default function Page() {
 
       <SidebarInset className="relative flex flex-col h-[calc(100vh_-_1rem)]">
         <RoomHeader room={room} />
-        <MoviePosition room={room} /> {/* Pass room prop */}
-        <div className="flex-1 flex flex-col min-h-0">
-          {/* Messages Area - only show when joined */}
-          {isAuthenticated && userStatus === "joined" ? (
-            <div className="flex-1 overflow-hidden relative">
-              <MessageList
-                messages={messages}
-                loading={messagesLoading}
-                error={messagesError}
-                room={room}
-                onReplyToMessage={handleReplyToMessage}
-                onReactToMessage={handleReactToMessage}
-              />
-            </div>
-          ) : (
-            <div className="flex-1" />
-          )}
 
-          {renderBottomComponent()}
-        </div>
+        <UserPositionProvider room={room}>
+          <MoviePosition room={room} /> {/* Pass room prop */}
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Messages Area - only show when joined */}
+            {isAuthenticated && userStatus === "joined" ? (
+              <div className="flex-1 overflow-hidden relative">
+                <MessageList
+                  messages={messages}
+                  loading={messagesLoading}
+                  error={messagesError}
+                  room={room}
+                  onReplyToMessage={handleReplyToMessage}
+                  onReactToMessage={handleReactToMessage}
+                />
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+
+            {renderBottomComponent()}
+          </div>
+        </UserPositionProvider>
       </SidebarInset>
     </SidebarProvider>
   );
