@@ -156,14 +156,13 @@ function MessageItem({
       className={clsx(
         "group px-4 py-1 hover:bg-muted/20 transition-all duration-300 relative",
         isOwnMessage ? "flex justify-end" : "flex justify-start"
-        // isHighlighted && "ring-2 ring-primary/50 bg-primary/5"
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
       <div
         className={clsx(
-          "max-w-[70%] relative",
+          "max-w-[90%] relative",
           isOwnMessage ? "order-2" : "order-1"
         )}
       >
