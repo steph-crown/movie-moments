@@ -718,13 +718,19 @@ export async function checkUserRoomAccess(roomCode: string): Promise<{
   }
 }
 
-export async function getRoomParticipants(roomId: string): Promise<{
+export async function getRoomParticipants(
+  roomId: string,
+  options: {
+    joinedOnly?: boolean; // New parameter to filter by joined status
+  } = {}
+): Promise<{
   success: boolean;
   data?: RoomParticipant[];
   error?: string;
 }> {
   try {
     const supabase = await createClient();
+    const { joinedOnly = false } = options;
 
     // Get current user to check permissions
     const {
@@ -738,45 +744,8 @@ export async function getRoomParticipants(roomId: string): Promise<{
       };
     }
 
-    // Check if user has access to this room (is a participant or creator)
-    // const { data: userParticipation, error: participationError } =
-    //   await supabase
-    //     .from("room_participants")
-    //     .select("status, role")
-    //     .eq("room_id", roomId)
-    //     .eq("user_id", currentUser.id)
-    //     .single();
-
-    // if (participationError && participationError.code !== "PGRST116") {
-    //   console.error("Error checking user participation:", participationError);
-    //   return { success: false, error: "Failed to verify room access" };
-    // }
-
-    // Also check if user is the room creator
-    // const { data: room, error: roomError } = await supabase
-    //   .from("rooms")
-    //   .select("creator_id")
-    //   .eq("id", roomId)
-    //   .single();
-
-    // if (roomError) {
-    //   console.error("Error checking room creator:", roomError);
-    //   return { success: false, error: "Failed to verify room access" };
-    // }
-
-    // const isCreator = room.creator_id === currentUser.id;
-    // const isParticipant =
-    //   userParticipation && userParticipation.status === "joined";
-
-    // if (!isCreator && !isParticipant) {
-    //   return {
-    //     success: false,
-    //     error: "You don't have access to view this room's participants",
-    //   };
-    // }
-
-    // Get all participants first
-    const { data: participants, error: participantsError } = await supabase
+    // Build query with optional status filter
+    let query = supabase
       .from("room_participants")
       .select(
         `
@@ -795,9 +764,19 @@ export async function getRoomParticipants(roomId: string): Promise<{
         position_updated_at
       `
       )
-      .eq("room_id", roomId)
+      .eq("room_id", roomId);
+
+    // Apply status filter if joinedOnly is true
+    if (joinedOnly) {
+      query = query.eq("status", "joined");
+    }
+
+    // Apply ordering
+    query = query
       .order("role", { ascending: false }) // Creators first
       .order("joined_at", { ascending: true }); // Then by join time
+
+    const { data: participants, error: participantsError } = await query;
 
     console.log({ businessmann: participants });
 

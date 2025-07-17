@@ -238,7 +238,7 @@ export function UserPositionProvider({
     console.log("👥 Refreshing participants for room:", room.id);
 
     try {
-      const result = await getRoomParticipants(room.id);
+      const result = await getRoomParticipants(room.id, { joinedOnly: true });
       console.log("👥 Participants fetch result:", result);
 
       if (result.success && result.data) {
