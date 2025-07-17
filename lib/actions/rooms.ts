@@ -799,6 +799,8 @@ export async function getRoomParticipants(roomId: string): Promise<{
       .order("role", { ascending: false }) // Creators first
       .order("joined_at", { ascending: true }); // Then by join time
 
+    console.log({ businessmann: participants });
+
     if (participantsError) {
       console.error("Error fetching room participants:", participantsError);
       return { success: false, error: "Failed to fetch participants" };

@@ -20,6 +20,8 @@ import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
 
+// Update your page component to pass room to MoviePosition and fix message sending
+
 export default function Page() {
   const params = useParams();
   const router = useRouter();
@@ -122,9 +124,9 @@ export default function Page() {
   const handleSendMessage = async (
     messageText: string,
     options?: {
-      seasonNumber?: number;
-      episodeNumber?: number;
-      episodeTimestamp?: number;
+      currentSeason?: string; // Updated: Now string for encoded season
+      currentEpisode?: number;
+      playbackTimestamp?: string; // Updated: Now string for time format
       parentMessageId?: string;
     }
   ) => {
@@ -135,9 +137,9 @@ export default function Page() {
         room_id: room.id,
         user_id: "", // Will be set by the hook
         message_text: messageText,
-        season_number: options?.seasonNumber || null,
-        episode_number: options?.episodeNumber || null,
-        episode_timestamp: options?.episodeTimestamp || null,
+        current_season: options?.currentSeason || null, // Updated field name
+        current_episode: options?.currentEpisode || null, // Updated field name
+        playback_timestamp: options?.playbackTimestamp || null, // Updated field name
         thread_depth: options?.parentMessageId ? 1 : 0,
         parent_message_id: options?.parentMessageId || null,
         is_deleted: false,
@@ -241,8 +243,7 @@ export default function Page() {
 
       <SidebarInset className="relative flex flex-col h-[calc(100vh_-_1rem)]">
         <RoomHeader room={room} />
-        <MoviePosition />
-
+        <MoviePosition room={room} /> {/* Pass room prop */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Messages Area - only show when joined */}
           {isAuthenticated && userStatus === "joined" ? (

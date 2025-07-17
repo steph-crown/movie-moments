@@ -4,9 +4,9 @@ export interface IMessage {
   room_id: string;
   user_id: string;
   message_text: string;
-  season_number?: number | null;
-  episode_number?: number | null;
-  episode_timestamp?: number | null; // seconds within episode/movie
+  current_season?: string | null; // Changed: Now string for encoded season data
+  current_episode?: number | null; // Changed: Renamed from episode_number
+  playback_timestamp?: string | null; // Changed: Now string for time format like "1:23:45"
   thread_depth: number; // 0 for top-level, 1+ for replies
   parent_message_id?: string | null;
   created_at: string;

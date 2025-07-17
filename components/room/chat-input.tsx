@@ -16,9 +16,9 @@ interface ChatInputProps {
   onSendMessage: (
     message: string,
     options?: {
-      seasonNumber?: number;
-      episodeNumber?: number;
-      episodeTimestamp?: number;
+      currentSeason?: string; // Changed: Now string for encoded season
+      currentEpisode?: number;
+      playbackTimestamp?: string; // Changed: Now string for time format
       parentMessageId?: string;
     }
   ) => Promise<void>;
@@ -90,33 +90,11 @@ export function ChatInput({
 
     setSending(true);
     try {
-      // Parse current position
-      let seasonNumber: number | undefined;
-      let episodeNumber: number | undefined;
-      let timestampInSeconds: number = 0;
-
-      if (
-        room.content.content_type === "series" &&
-        userPosition?.current_season
-      ) {
-        try {
-          const seasonData = decodeSeasonData(userPosition.current_season);
-          seasonNumber = seasonData.number;
-        } catch {
-          // If decoding fails, try parsing as number
-          seasonNumber = parseInt(userPosition.current_season);
-        }
-        episodeNumber = userPosition.current_episode || undefined;
-      }
-
-      if (userPosition?.playback_timestamp) {
-        timestampInSeconds = parseTimestamp(userPosition.playback_timestamp);
-      }
-
+      // Send message with current position data
       await onSendMessage(message.trim(), {
-        seasonNumber,
-        episodeNumber,
-        episodeTimestamp: timestampInSeconds,
+        currentSeason: userPosition?.current_season || undefined,
+        currentEpisode: userPosition?.current_episode || undefined,
+        playbackTimestamp: userPosition?.playback_timestamp || undefined,
         parentMessageId: replyingTo?.messageId,
       });
 
@@ -144,16 +122,6 @@ export function ChatInput({
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(e.target.value);
     adjustHeight();
-  };
-
-  const parseTimestamp = (timestamp: string): number => {
-    const parts = timestamp.split(":").map(Number);
-    if (parts.length === 2) {
-      return parts[0] * 60 + parts[1]; // MM:SS
-    } else if (parts.length === 3) {
-      return parts[0] * 3600 + parts[1] * 60 + parts[2]; // HH:MM:SS
-    }
-    return 0;
   };
 
   const formatPosition = () => {
@@ -189,6 +157,10 @@ export function ChatInput({
     if (result.success && result.data) {
       setUserPosition(result.data);
     }
+  };
+
+  const handlePositionClick = () => {
+    setShowPositionDialog(true);
   };
 
   useEffect(() => {
@@ -242,9 +214,10 @@ export function ChatInput({
               <Button
                 type="button"
                 variant="outline"
-                className="rounded-full !text-muted-foreground text-xs"
+                className="rounded-full !text-muted-foreground text-xs cursor-pointer"
                 size="sm"
                 disabled={loadingPosition}
+                onClick={handlePositionClick}
               >
                 <Clock2 className="h-4 text-muted-foreground" />
                 {formatPosition()}
@@ -273,6 +246,11 @@ export function ChatInput({
         room={room}
         open={showPositionDialog}
         onSuccess={handlePositionDialogSuccess}
+        onOpenChange={setShowPositionDialog}
+        initialSeason={userPosition?.current_season}
+        initialEpisode={userPosition?.current_episode}
+        initialTimestamp={userPosition?.playback_timestamp}
+        allowClose={true}
       />
     </>
   );

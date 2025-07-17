@@ -39,9 +39,9 @@ export function useRealtimeMessages({
       room_id: roomId,
       user_id: msg.user_id,
       message_text: msg.message_text,
-      season_number: msg.season_number,
-      episode_number: msg.episode_number,
-      episode_timestamp: msg.episode_timestamp,
+      current_season: msg.current_season, // Updated field name
+      current_episode: msg.current_episode, // Updated field name
+      playback_timestamp: msg.playback_timestamp, // Updated field name
       thread_depth: msg.thread_depth,
       parent_message_id: msg.parent_message_id,
       created_at: msg.created_at,
@@ -119,9 +119,9 @@ export function useRealtimeMessages({
         room_id: roomId,
         user_id: msg.user_id,
         message_text: msg.message_text,
-        season_number: msg.season_number,
-        episode_number: msg.episode_number,
-        episode_timestamp: msg.episode_timestamp,
+        current_season: msg.current_season, // Updated field name
+        current_episode: msg.current_episode, // Updated field name
+        playback_timestamp: msg.playback_timestamp, // Updated field name
         thread_depth: msg.thread_depth,
         parent_message_id: msg.parent_message_id,
         created_at: msg.created_at,
@@ -176,11 +176,12 @@ export function useRealtimeMessages({
           room_id: roomId,
           user_id: user.id,
           message_text: messageData.message_text,
-          season_number: messageData.season_number,
-          episode_number: messageData.episode_number,
-          episode_timestamp: messageData.episode_timestamp,
+          current_season: messageData.current_season, // Updated field name
+          current_episode: messageData.current_episode, // Updated field name
+          playback_timestamp: messageData.playback_timestamp, // Updated field name
           thread_depth: messageData.thread_depth || 0,
           parent_message_id: messageData.parent_message_id,
+          is_deleted: false,
         });
 
         if (error) throw error;
@@ -191,6 +192,7 @@ export function useRealtimeMessages({
     },
     [roomId, supabase]
   );
+
   // Add reaction function
   const addReaction = useCallback(
     async (messageId: string, emoji: string) => {
@@ -292,49 +294,7 @@ export function useRealtimeMessages({
           console.log({ thenewmessageis: data, error });
 
           if (!error && data) {
-            // const newMessage: IMessage = {
-            //   id: data.id,
-            //   room_id: roomId,
-            //   user_id: data.user?.id || "",
-            //   message_text: data.message_text,
-            //   season_number: data.season_number,
-            //   episode_number: data.episode_number,
-            //   episode_timestamp: data.episode_timestamp,
-            //   thread_depth: data.thread_depth,
-            //   parent_message_id: data.parent_message_id,
-            //   created_at: data.created_at,
-            //   updated_at: data.updated_at,
-            //   is_deleted: data.is_deleted,
-            //   user: {
-            //     id: data.profiles?.id || "",
-            //     email: data.profiles?.email || "",
-            //     username: data.profiles?.raw_user_meta_data?.username || "User",
-            //     display_name:
-            //       data.profiles?.display_name ||
-            //       data.profiles?.username ||
-            //       "User",
-            //     avatar_url: data.profiles?.avatar_url,
-            //   },
-            //   reactions: (data.reactions || []).map((reaction: any) => ({
-            //     id: reaction.id,
-            //     message_id: data.id,
-            //     user_id: reaction.user?.id || "",
-            //     emoji: reaction.emoji,
-            //     created_at: reaction.created_at,
-            //     user: {
-            //       id: reaction.user?.id || "",
-            //       username:
-            //         reaction.profiles?.username || "User",
-            //       display_name:
-            //         reaction.profiles?.display_name ||
-            //         reaction.profiles?.username ||
-            //         "User",
-            //     },
-            //   })),
-            // };
-
             const newMessage = formMessageFromQueryResponse(data);
-
             setMessages((prev) => [...prev, newMessage]);
           }
         }

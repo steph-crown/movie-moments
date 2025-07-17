@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { IMessage } from "@/interfaces/message.interface";
 import { IRoom } from "@/interfaces/room.interface";
+import { decodeSeasonData } from "@/lib/utils/season.utils";
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2, MoreHorizontal, Reply, SmilePlus } from "lucide-react";
@@ -31,8 +32,8 @@ interface MessageItemProps {
   showAvatar?: boolean;
   isOwnMessage?: boolean;
   parentMessage?: IMessage | null;
-  onScrollToParent?: (messageId: string) => void; // ADD THIS
-  isHighlighted?: boolean; // ADD THIS
+  onScrollToParent?: (messageId: string) => void;
+  isHighlighted?: boolean;
 }
 
 function MessageItem({
@@ -44,8 +45,8 @@ function MessageItem({
   showAvatar = true,
   isOwnMessage = false,
   parentMessage = null,
-  onScrollToParent, // ADD THIS
-  isHighlighted = false, // ADD THIS
+  onScrollToParent,
+  isHighlighted = false,
 }: MessageItemProps) {
   const [showActions, setShowActions] = useState(false);
   const [reactingWith, setReactingWith] = useState<string | null>(null);
@@ -59,16 +60,9 @@ function MessageItem({
     return "🎬"; // Movie camera emoji for movies
   };
 
-  const formatTimestamp = (timestamp?: number | null) => {
+  const formatTimestamp = (timestamp?: string | null) => {
     if (!timestamp) return "";
-    const hours = Math.floor(timestamp / 3600);
-    const minutes = Math.floor((timestamp % 3600) / 60);
-    const seconds = timestamp % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-    }
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+    return timestamp; // Already in string format like "1:23:45"
   };
 
   const formatMessageTime = (utcTimestamp: string) => {
@@ -90,13 +84,28 @@ function MessageItem({
   const getPositionText = () => {
     if (
       room.content.content_type === "series" &&
-      message.season_number &&
-      message.episode_number
+      message.current_season &&
+      message.current_episode
     ) {
-      return `S${message.season_number}E${message.episode_number}${message.episode_timestamp ? ` • ${formatTimestamp(message.episode_timestamp)}` : ""}`;
+      try {
+        // Try to decode season data
+        const seasonData = decodeSeasonData(message.current_season);
+        return `S${seasonData.number}E${message.current_episode}${
+          message.playback_timestamp
+            ? ` • ${formatTimestamp(message.playback_timestamp)}`
+            : ""
+        }`;
+      } catch {
+        // Fallback if decoding fails
+        return `S${message.current_season}E${message.current_episode}${
+          message.playback_timestamp
+            ? ` • ${formatTimestamp(message.playback_timestamp)}`
+            : ""
+        }`;
+      }
     }
-    if (message.episode_timestamp) {
-      return formatTimestamp(message.episode_timestamp);
+    if (message.playback_timestamp) {
+      return formatTimestamp(message.playback_timestamp);
     }
     return null;
   };
@@ -143,11 +152,11 @@ function MessageItem({
 
   return (
     <div
-      id={`message-${message.id}`} // ADD THIS
+      id={`message-${message.id}`}
       className={clsx(
-        "group px-4 py-1 hover:bg-muted/20 transition-all duration-300 relative", // CHANGED transition-colors to transition-all duration-300
-        isOwnMessage ? "flex justify-end" : "flex justify-start"
-        // ADD THIS
+        "group px-4 py-1 hover:bg-muted/20 transition-all duration-300 relative",
+        isOwnMessage ? "flex justify-end" : "flex justify-start",
+        isHighlighted && "ring-2 ring-primary/50 bg-primary/5"
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
@@ -207,7 +216,7 @@ function MessageItem({
             className={clsx(
               "rounded-2xl px-4 py-2 relative max-w-full transition-all",
               isOwnMessage
-                ? "bg-[#c7d2fe]  rounded-br-md"
+                ? "bg-[#c7d2fe] rounded-br-md"
                 : "bg-muted rounded-bl-md",
               message.thread_depth > 0 && "mt-1",
               isHighlighted && "ring-8 ring-primary rounded-lg opacity-60"
@@ -280,20 +289,6 @@ function MessageItem({
               </div>
             )}
           </div>
-
-          {/* Message timestamp for own messages */}
-          {/* {isOwnMessage && (
-            <div className="flex-shrink-0 mb-1 ml-2">
-              <div className="w-8 h-8 flex items-center justify-center">
-                <span
-                  className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-default"
-                  title={messageTime.fullFormat}
-                >
-                  {messageTime.timeOnly}
-                </span>
-              </div>
-            </div>
-          )} */}
         </div>
 
         {/* Floating action buttons */}
@@ -427,22 +422,6 @@ export function MessageList({
     }
   }, []);
 
-  // const [currentUserId, setCurrentUserId] = useState<string>("");
-
-  // // Get current user ID
-  // useEffect(() => {
-  //   const getCurrentUser = async () => {
-  //     const supabase = createClient();
-  //     const {
-  //       data: { user },
-  //     } = await supabase.auth.getUser();
-  //     if (user) {
-  //       setCurrentUserId(user.id);
-  //     }
-  //   };
-  //   getCurrentUser();
-  // }, []);
-
   const scrollPositionKey = `room-${room.id}-scroll`;
 
   const scrollToBottom = useCallback(() => {
@@ -536,7 +515,13 @@ export function MessageList({
         setTimeout(scrollToBottom, 100);
       }
     }
-  }, [messages.length > 0, loading]);
+  }, [
+    messages.length > 0,
+    loading,
+    // restoreScrollPosition,
+    // scrollToBottom,
+    // scrollPositionKey,
+  ]);
 
   useEffect(() => {
     if (messages.length > 0 && shouldAutoScroll) {
@@ -611,12 +596,12 @@ export function MessageList({
                       room={room}
                       onReply={onReplyToMessage}
                       onReact={onReactToMessage}
-                      onScrollToParent={scrollToMessage} // ADD THIS
+                      onScrollToParent={scrollToMessage}
                       isFirstInGroup={messageIndex === 0}
                       showAvatar={messageIndex === 0}
                       isOwnMessage={isOwnMessage}
                       parentMessage={parentMessage}
-                      isHighlighted={highlightedMessage === message.id} // ADD THIS
+                      isHighlighted={highlightedMessage === message.id}
                     />
                   );
                 })}
