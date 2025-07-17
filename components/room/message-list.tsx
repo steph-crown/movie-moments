@@ -10,9 +10,22 @@ import { IRoom } from "@/interfaces/room.interface";
 import { decodeSeasonData, parseTimestamp } from "@/lib/utils/season.utils";
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
-import { Loader2, MoreHorizontal, Reply, SmilePlus } from "lucide-react";
+import {
+  Loader2,
+  MoreHorizontal,
+  Reply,
+  SmilePlus,
+  Eye,
+  MapPin,
+} from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 import { useUserPosition } from "@/contexts/user-position-context";
 
 interface MessageListProps {
@@ -55,6 +68,7 @@ function MessageItem({
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(
     null
   );
+  const [isUnblurred, setIsUnblurred] = useState(false); // New: Track manual unblur state
   const { user } = useAuth();
   const { position: userPosition } = useUserPosition();
 
@@ -168,9 +182,38 @@ function MessageItem({
     return null;
   };
 
+  // Get the position text for spoiler warning
+  const getSpoilerPositionText = () => {
+    const messageToCheck =
+      message.thread_depth > 0 && parentMessage ? parentMessage : message;
+
+    if (
+      room.content.content_type === "series" &&
+      messageToCheck.current_season &&
+      messageToCheck.current_episode
+    ) {
+      try {
+        const seasonData = decodeSeasonData(messageToCheck.current_season);
+        return `S${seasonData.number}E${messageToCheck.current_episode}${
+          messageToCheck.playback_timestamp
+            ? ` ${messageToCheck.playback_timestamp}`
+            : ""
+        }`;
+      } catch {
+        return `S${messageToCheck.current_season}E${messageToCheck.current_episode}${
+          messageToCheck.playback_timestamp
+            ? ` ${messageToCheck.playback_timestamp}`
+            : ""
+        }`;
+      }
+    }
+    return messageToCheck.playback_timestamp || "Unknown position";
+  };
+
   // Spoiler detection logic
   const shouldBlurMessage = () => {
-    if (room.spoiler_policy !== "hide_spoilers" || !userPosition) return false;
+    if (room.spoiler_policy !== "hide_spoilers" || !userPosition || isUnblurred)
+      return false;
 
     // Don't blur own messages
     if (isOwnMessage) return false;
@@ -277,6 +320,11 @@ function MessageItem({
     onReply?.(message);
   };
 
+  const handleUnblurClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsUnblurred(true);
+  };
+
   const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "💯"];
   const messageTime = formatMessageTime(message.created_at);
 
@@ -375,20 +423,49 @@ function MessageItem({
                 ? "bg-[#c7d2fe] rounded-br-md"
                 : "bg-muted rounded-bl-md",
               message.thread_depth > 0 && "mt-1",
-              isHighlighted && "ring-8 ring-primary rounded-lg opacity-60",
-              isBlurred && "backdrop-blur-sm bg-opacity-50"
+              isHighlighted && "ring-8 ring-primary rounded-lg opacity-60"
             )}
           >
             {/* Spoiler overlay */}
             {isBlurred && (
-              <div className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
-                <div className="text-xs font-medium text-center px-2">
-                  <span className="block">⚠️ Spoiler Alert</span>
-                  <span className="text-muted-foreground">
-                    This message contains future content
-                  </span>
-                </div>
-              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="absolute inset-0 bg-black/10 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10 cursor-pointer hover:bg-black/30 transition-colors"
+                      onClick={handleUnblurClick}
+                    >
+                      <div className="text-xs font-medium text-center px-2">
+                        <div className="flex items-center gap-1 justify-center mb-1">
+                          <Eye className="h-3 w-3" />
+                          <span>Potential Spoiler</span>
+                        </div>
+                        <span className="text-muted-foreground text-[10px]">
+                          Click to reveal
+                        </span>
+                      </div>
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <div className="space-y-2">
+                      <p className="font-medium">
+                        This message contains a comment about future{" "}
+                        {room.content.content_type === "series"
+                          ? "episodes"
+                          : "scenes"}
+                      </p>
+                      <div className="flex items-center gap-1 text-xs">
+                        <MapPin className="h-3 w-3" />
+                        <span>Position: {getSpoilerPositionText()}</span>
+                      </div>
+                      <p className="text-xs opacity-75">
+                        Click to view anyway or update your position if
+                        you&apos;ve passed this point
+                      </p>
+                    </div>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
 
             {/* Header for first message in group (others only) */}
