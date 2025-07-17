@@ -283,7 +283,6 @@ export async function createRoom(
   };
   error?: string;
 }> {
-  console.log({ thecontentdata: contentData });
   try {
     const supabase = await createClient();
 
@@ -361,6 +360,18 @@ export async function createRoom(
       return { success: false, error: "Failed to generate unique room code" };
     }
 
+    // Parse starting season if it's encoded
+    let startingSeason = null;
+    if (data.starting_season) {
+      if (data.starting_season.includes("|")) {
+        // It's encoded, extract the season number
+        const parts = data.starting_season.split("|");
+        startingSeason = parseInt(parts[0]);
+      } else {
+        startingSeason = parseInt(data.starting_season);
+      }
+    }
+
     // Create the room
     const { data: room, error: createError } = await supabase
       .from("rooms")
@@ -372,7 +383,7 @@ export async function createRoom(
         streaming_platform: data.streaming_platform,
         privacy_level: data.privacy_level,
         spoiler_policy: data.spoiler_policy,
-        starting_season: data.starting_season || null,
+        starting_season: startingSeason,
         starting_episode: data.starting_episode || null,
         creator_id: user.id,
       })
@@ -384,7 +395,7 @@ export async function createRoom(
       return { success: false, error: "Failed to create room" };
     }
 
-    // Create room participant entry for creator
+    // Create room participant entry for creator - Fixed to include playback_timestamp
     const { error: participantError } = await supabase
       .from("room_participants")
       .insert({
@@ -393,14 +404,18 @@ export async function createRoom(
         status: "joined",
         role: "creator",
         join_method: "created",
+        invited_at: new Date().toISOString(),
         joined_at: new Date().toISOString(),
-        current_season: data.starting_season || null,
+        last_seen: new Date().toISOString(),
+        current_season: data.starting_season || null, // Store encoded season
         current_episode: data.starting_episode || null,
-        playback_timestamp: 0,
+        playback_timestamp: data.playback_timestamp || "0:00", // Fixed: Store timestamp
+        position_updated_at: new Date().toISOString(),
       });
 
     if (participantError) {
       console.error("Participant creation error:", participantError);
+      // Don't fail room creation for this
     }
 
     // Revalidate relevant paths

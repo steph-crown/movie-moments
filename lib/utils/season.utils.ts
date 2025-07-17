@@ -1,3 +1,5 @@
+// lib/utils/season.utils.ts
+
 export interface SeasonData {
   number: number;
   name: string;

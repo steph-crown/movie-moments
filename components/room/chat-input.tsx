@@ -38,6 +38,8 @@ export function ChatInput({
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
 
+  console.log({ drinkroom: room });
+
   // Current position state (could be from context or props)
   const [currentPosition] = useState({
     season: room.season_number || 1,

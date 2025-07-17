@@ -79,9 +79,9 @@ export interface RoomParticipant {
   join_method: "created" | "invited_email" | "invited_username" | "public_link";
   joined_at: string | null;
   last_seen: string | null;
-  current_season: number | null;
+  current_season: string | null; // Fixed: Changed from number to string
   current_episode: number | null;
-  playback_timestamp: number | null;
+  playback_timestamp: string | null; // Fixed: Changed from number to string
   position_updated_at: string | null;
   // Profile data from join
   profile?: {
@@ -98,8 +98,9 @@ export interface CreateRoomData {
   streaming_platform: string;
   privacy_level: PrivacyLevel;
   spoiler_policy: SpoilerPolicy;
-  starting_season?: number;
+  starting_season?: string; // Fixed: Changed from number to string
   starting_episode?: number;
+  playback_timestamp?: string; // Fixed: Added this field
 }
 
 // Room update payload

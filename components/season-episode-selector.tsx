@@ -1,4 +1,4 @@
-// Updated components/room/seasons-episode-selector.tsx
+// components/room/seasons-episode-selector.tsx
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -27,12 +27,12 @@ interface Season {
 
 interface SeasonsAndEpisodeSelectorProps {
   seasons: Season[];
-  defaultSeason?: number;
+  defaultSeason?: string | number; // Fixed: Allow both string and number
   defaultEpisode?: number;
-  defaultTimestamp?: number; // in seconds
+  defaultTimestamp?: string | number; // Fixed: Allow both string and number
   onSeasonChange?: (season: SeasonData) => void;
   onEpisodeChange?: (episode: number) => void;
-  onTimestampChange?: (timestamp: number) => void; // in seconds
+  onTimestampChange?: (timestamp: string) => void; // Fixed: Return string for storage
   seasonLabel?: string;
   episodeLabel?: string;
   timestampLabel?: string;
@@ -44,7 +44,7 @@ export function SeasonsAndEpisodeSelector({
   seasons,
   defaultSeason = 1,
   defaultEpisode = 1,
-  defaultTimestamp = 0,
+  defaultTimestamp = "0:00",
   onSeasonChange,
   onEpisodeChange,
   onTimestampChange,
@@ -58,17 +58,49 @@ export function SeasonsAndEpisodeSelector({
     useState<SeasonData | null>(null);
   const [selectedEpisode, setSelectedEpisode] =
     useState<number>(defaultEpisode);
-  const [timestamp, setTimestamp] = useState<number>(defaultTimestamp);
+  const [timestamp, setTimestamp] = useState<number>(0);
 
   // Use ref to track if we've initialized to prevent infinite loops
   const isInitialized = useRef(false);
 
+  // Initialize timestamp
+  useEffect(() => {
+    if (typeof defaultTimestamp === "string") {
+      // Parse string timestamp like "1:23:45" or "5:30"
+      const parts = defaultTimestamp.split(":").map(Number);
+      if (parts.length === 3) {
+        setTimestamp(parts[0] * 3600 + parts[1] * 60 + parts[2]);
+      } else if (parts.length === 2) {
+        setTimestamp(parts[0] * 60 + parts[1]);
+      } else {
+        setTimestamp(0);
+      }
+    } else {
+      setTimestamp(defaultTimestamp);
+    }
+  }, [defaultTimestamp]);
+
   // Initialize with default season - Fixed to prevent infinite loops
   useEffect(() => {
     if (seasons.length > 0 && !isInitialized.current) {
+      // Handle both string and number defaultSeason
+      let seasonNumber: number;
+      if (typeof defaultSeason === "string") {
+        // If it's an encoded season, decode it
+        if (defaultSeason.includes("|")) {
+          const decoded = decodeSeasonData(defaultSeason);
+          seasonNumber = decoded.number;
+        } else {
+          seasonNumber = parseInt(defaultSeason);
+        }
+      } else {
+        seasonNumber = defaultSeason;
+      }
+
       const defaultSeasonObj = seasons.find(
-        (s) => s.season_number === defaultSeason
+        (s) => s.season_number === seasonNumber
       );
+
       if (defaultSeasonObj) {
         const seasonData = {
           number: defaultSeasonObj.season_number,
@@ -106,7 +138,19 @@ export function SeasonsAndEpisodeSelector({
 
   const handleTimestampChange = (seconds: number) => {
     setTimestamp(seconds);
-    onTimestampChange?.(seconds);
+    // Convert to string format for storage
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    let timeString: string;
+    if (hours > 0) {
+      timeString = `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    } else {
+      timeString = `${minutes}:${secs.toString().padStart(2, "0")}`;
+    }
+
+    onTimestampChange?.(timeString);
   };
 
   // Generate episode options based on selected season

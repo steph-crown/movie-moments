@@ -18,7 +18,7 @@ import clsx from "clsx";
 import { Edit2, Plus, Search } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -53,8 +53,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import { SeasonsAndEpisodeSelector } from "../season-episode-selector";
 import { SeasonData } from "@/lib/utils/season.utils";
+import { SeasonsAndEpisodeSelector } from "../season-episode-selector";
 
 const STREAMING_PLATFORMS: StreamingPlatform[] = [
   "Netflix",
@@ -89,9 +89,10 @@ const FormSchema = z.object({
   spoiler_policy: z.enum(["hide_spoilers", "show_all"], {
     required_error: "You need to select spoiler policy.",
   }),
-  // For series only
-  starting_season: z.number().optional(),
+  // For series only - Fixed types
+  starting_season: z.string().optional(),
   starting_episode: z.number().optional(),
+  playback_timestamp: z.string().optional(),
 });
 
 type FormData = z.infer<typeof FormSchema>;
@@ -122,8 +123,9 @@ export function CreateRoomBtn({
     defaultValues: {
       privacy_level: "private",
       spoiler_policy: "hide_spoilers",
-      starting_season: 1,
+      starting_season: "1|Season 1|1|10", // Default encoded season
       starting_episode: 1,
+      playback_timestamp: "0:00",
     },
   });
 
@@ -150,7 +152,6 @@ export function CreateRoomBtn({
   };
 
   const handleLoginRedirect = () => {
-    // setShowLoginDialog(false);
     router.push("/auth/login");
   };
 
@@ -170,28 +171,31 @@ export function CreateRoomBtn({
     form.setValue("title", "");
   };
 
-  console.log({ spirrtititi: selectedContent });
-
   const handleContentSelect = (content: SearchResult) => {
     setSelectedContent(content);
     form.setValue("content_tmdb_id", content.tmdb_id);
-    form.setValue("title", content.title); // Default room title to content title
+    form.setValue("title", content.title);
     setStep("details");
 
-    // fetch more details, like seasons and numberOfSeasons
+    // Fetch more details for series
     if (content.content_type === "series") {
       updateContentCacheWithDetailsIfNeeded(
         content.tmdb_id,
         content.content_type
       )
         .then((result) => {
-          setSelectedContent((prev) => ({
-            ...(prev || content),
-            seasons: result.detailedContent?.seasons,
-          }));
-          console.log({ theresult: result });
-          if (result.success && result.wasUpdated) {
-            console.log("Content cache updated with detailed information");
+          if (result.success && result.detailedContent?.seasons) {
+            setSelectedContent((prev) => ({
+              ...(prev || content),
+              seasons: result.detailedContent?.seasons || [],
+            }));
+
+            // Set default season to first available season
+            if (result.detailedContent.seasons.length > 0) {
+              const firstSeason = result.detailedContent.seasons[0];
+              const encodedSeason = `${firstSeason.season_number}|${firstSeason.name}|${firstSeason.id}|${firstSeason.episode_count}`;
+              form.setValue("starting_season", encodedSeason);
+            }
           }
         })
         .catch((error) => {
@@ -206,7 +210,28 @@ export function CreateRoomBtn({
     form.setValue("content_tmdb_id", 0 as any);
   };
 
-  console.log({ selectedContent });
+  // Fixed: Use useCallback to prevent infinite loops
+  const handleSeasonChange = useCallback(
+    (season: SeasonData) => {
+      const encodedSeason = `${season.number}|${season.name}|${season.id}|${season.episodeCount}`;
+      form.setValue("starting_season", encodedSeason);
+    },
+    [form]
+  );
+
+  const handleEpisodeChange = useCallback(
+    (episode: number) => {
+      form.setValue("starting_episode", episode);
+    },
+    [form]
+  );
+
+  const handleTimestampChange = useCallback(
+    (timestamp: string) => {
+      form.setValue("playback_timestamp", timestamp);
+    },
+    [form]
+  );
 
   async function onSubmit(data: FormData) {
     if (!user || !selectedContent) {
@@ -226,6 +251,7 @@ export function CreateRoomBtn({
         spoiler_policy: data.spoiler_policy,
         starting_season: data.starting_season,
         starting_episode: data.starting_episode,
+        playback_timestamp: data.playback_timestamp,
       };
 
       // Pass the selected content data as second parameter
@@ -329,7 +355,6 @@ export function CreateRoomBtn({
                 )}
               >
                 <Plus />
-                {/* <IconCirclePlusFilled /> */}
                 Create room
               </Button>
 
@@ -485,7 +510,6 @@ export function CreateRoomBtn({
                                 size="sm"
                                 onClick={() => {
                                   clearError();
-                                  // Retry search by clearing and setting query again
                                   const currentQuery = searchQuery;
                                   setSearchQuery("");
                                   setTimeout(
@@ -634,94 +658,26 @@ export function CreateRoomBtn({
                         )}
                       />
 
-                      {/* Starting Episode (Series only) */}
-                      {/* {contentType === "series" && (
-                        <div className="grid grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="starting_season"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Starting Season</FormLabel>
-                                <Select
-                                  onValueChange={(value) =>
-                                    field.onChange(Number(value))
-                                  }
-                                  defaultValue={field.value?.toString()}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="w-full">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {[1, 2, 3, 4, 5].map((season) => (
-                                      <SelectItem
-                                        key={season}
-                                        value={season.toString()}
-                                      >
-                                        Season {season}
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-
-                          <FormField
-                            control={form.control}
-                            name="starting_episode"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Starting Episode</FormLabel>
-                                <Select
-                                  onValueChange={(value) =>
-                                    field.onChange(Number(value))
-                                  }
-                                  defaultValue={field.value?.toString()}
-                                >
-                                  <FormControl>
-                                    <SelectTrigger className="w-full">
-                                      <SelectValue />
-                                    </SelectTrigger>
-                                  </FormControl>
-                                  <SelectContent>
-                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(
-                                      (episode) => (
-                                        <SelectItem
-                                          key={episode}
-                                          value={episode.toString()}
-                                        >
-                                          Episode {episode}
-                                        </SelectItem>
-                                      )
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      )} */}
-
+                      {/* Starting Position for Series */}
                       {contentType === "series" && selectedContent?.seasons && (
                         <div className="space-y-3">
+                          <Label className="text-sm font-medium">
+                            Starting Position
+                          </Label>
                           <SeasonsAndEpisodeSelector
                             seasons={selectedContent.seasons}
-                            defaultSeason={form.watch("starting_season") || 1}
+                            defaultSeason={form.watch("starting_season") || "1"}
                             defaultEpisode={form.watch("starting_episode") || 1}
-                            onSeasonChange={(season: SeasonData) => {
-                              form.setValue("starting_season", season.number);
-                            }}
-                            onEpisodeChange={(episode: number) => {
-                              form.setValue("starting_episode", episode);
-                            }}
+                            defaultTimestamp={
+                              form.watch("playback_timestamp") || "0:00"
+                            }
+                            onSeasonChange={handleSeasonChange}
+                            onEpisodeChange={handleEpisodeChange}
+                            onTimestampChange={handleTimestampChange}
                             seasonLabel="Starting Season"
                             episodeLabel="Starting Episode"
-                            showTimestamp={true} // Don't show timestamp in room creation
+                            timestampLabel="Starting Time"
+                            showTimestamp={true}
                           />
                           <p className="text-xs text-muted-foreground">
                             Choose where your group will begin watching together
@@ -874,25 +830,15 @@ export function CreateRoomBtn({
                     )}
 
                     {step === "details" && (
-                      <Button
-                        type="submit"
-                        disabled={isSubmitting}
-                        onClick={() => {
-                          console.log({
-                            values: form.getValues(),
-                            errr: form.formState,
-                          });
-                        }}
-                      >
+                      <Button type="submit" disabled={isSubmitting}>
                         {isSubmitting ? (
                           <div className="flex items-center gap-2">
+                            <InlineLoader />
                             Creating room...
                           </div>
                         ) : (
                           "Create Room & Invite Friends"
                         )}
-
-                        {isSubmitting && <InlineLoader />}
                       </Button>
                     )}
                   </>
@@ -904,9 +850,4 @@ export function CreateRoomBtn({
       </Dialog>
     </>
   );
-}
-
-{
-  /* </form>
-        </Form> */
 }
