@@ -1,7 +1,7 @@
 "use client";
 
 import clsx from "clsx";
-import { Clock2, Edit2Icon, Send, Loader2 } from "lucide-react";
+import { Clock2, Edit2Icon, Send, Loader2, Clock } from "lucide-react";
 import { useRef, useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -9,6 +9,12 @@ import { IRoom } from "@/interfaces/room.interface";
 import { PositionSetupDialog } from "./position-setup-dialog";
 import { decodeSeasonData } from "@/lib/utils/season.utils";
 import { useUserPosition } from "@/contexts/user-position-context";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "../ui/tooltip";
 
 interface ChatInputProps {
   className?: string;
@@ -41,6 +47,7 @@ export function ChatInput({
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [showPositionDialog, setShowPositionDialog] = useState(false);
+  const [includeTimestamp, setIncludeTimestamp] = useState(true); // New: Toggle for timestamp
 
   // Use the shared position context
   const { position: userPosition, loading: loadingPosition } =
@@ -72,11 +79,17 @@ export function ChatInput({
 
     setSending(true);
     try {
-      // Send message with current position data from context
+      // Send message with or without position data based on toggle
       await onSendMessage(message.trim(), {
-        currentSeason: userPosition?.current_season || undefined,
-        currentEpisode: userPosition?.current_episode || undefined,
-        playbackTimestamp: userPosition?.playback_timestamp || undefined,
+        currentSeason: includeTimestamp
+          ? userPosition?.current_season || undefined
+          : undefined,
+        currentEpisode: includeTimestamp
+          ? userPosition?.current_episode || undefined
+          : undefined,
+        playbackTimestamp: includeTimestamp
+          ? userPosition?.playback_timestamp || undefined
+          : undefined,
         parentMessageId: replyingTo?.messageId,
       });
 
@@ -141,6 +154,10 @@ export function ChatInput({
     setShowPositionDialog(true);
   };
 
+  const toggleTimestamp = () => {
+    setIncludeTimestamp(!includeTimestamp);
+  };
+
   useEffect(() => {
     adjustHeight();
   }, []);
@@ -189,18 +206,49 @@ export function ChatInput({
             />
 
             <div className="flex items-end justify-between gap-2 mt-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="rounded-full !text-muted-foreground text-xs cursor-pointer"
-                size="sm"
-                disabled={loadingPosition}
-                onClick={handlePositionClick}
-              >
-                <Clock2 className="h-4 text-muted-foreground" />
-                {formatPosition()}
-                <Edit2Icon className="h-4 text-muted-foreground" />
-              </Button>
+              <div className="flex items-center gap-2">
+                {/* Position Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="rounded-full !text-muted-foreground text-xs cursor-pointer"
+                  size="sm"
+                  disabled={loadingPosition}
+                  onClick={handlePositionClick}
+                >
+                  <Clock2 className="h-4 text-muted-foreground" />
+                  {formatPosition()}
+                  <Edit2Icon className="h-4 text-muted-foreground" />
+                </Button>
+
+                {/* Timestamp Toggle Button */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant={includeTimestamp ? "default" : "outline"}
+                        size="sm"
+                        onClick={toggleTimestamp}
+                        className="rounded-full h-8 w-8 p-0"
+                      >
+                        {includeTimestamp ? (
+                          <Clock2 className="h-4 w-4" />
+                        ) : (
+                          <Clock className="h-4 w-4 opacity-50" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>
+                        {includeTimestamp
+                          ? "Position will be included with message"
+                          : "Position will NOT be included with message"}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
 
               <Button
                 type="submit"

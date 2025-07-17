@@ -1,4 +1,4 @@
-// contexts/user-position-context.tsx - With real-time updates and fixed calculation
+// contexts/user-position-context.tsx - With staleness detection
 "use client";
 
 import {
@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import { IRoom, RoomParticipant } from "@/interfaces/room.interface";
 import { RealtimeChannel } from "@supabase/supabase-js";
 import { useAuth } from "@/hooks/use-auth";
+import { decodeSeasonData, parseTimestamp } from "@/lib/utils/season.utils";
 
 interface UserPosition {
   current_season: string | null;
@@ -37,6 +38,8 @@ interface UserPositionContextType {
   positionStats: PositionStats;
   loading: boolean;
   error: string | null;
+  lastPositionUpdate: Date | null;
+  showStalenessModal: boolean;
   updatePosition: (data: {
     season: string | null;
     episode: number | null;
@@ -44,6 +47,8 @@ interface UserPositionContextType {
   }) => Promise<boolean>;
   refreshPosition: () => Promise<void>;
   refreshParticipants: () => Promise<void>;
+  dismissStalenessModal: () => void;
+  openPositionDialog: () => void;
 }
 
 const UserPositionContext = createContext<UserPositionContextType | undefined>(
@@ -70,8 +75,19 @@ export function UserPositionProvider({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
+  const [lastPositionUpdate, setLastPositionUpdate] = useState<Date | null>(
+    null
+  );
+  const [showStalenessModal, setShowStalenessModal] = useState(false);
+  const [positionDialogCallback, setPositionDialogCallback] = useState<
+    (() => void) | null
+  >(null);
 
   const supabase = createClient();
+
+  // Constants for staleness detection
+  const STALENESS_THRESHOLD = 15 * 60 * 1000; // 15 minutes
+  const CHECK_INTERVAL = 5 * 60 * 1000; // Check every 5 minutes
 
   // Calculate position statistics
   const calculatePositionStats = useCallback(
@@ -200,16 +216,6 @@ export function UserPositionProvider({
     return seasonEpisodeScore + timestampFraction;
   };
 
-  const parseTimestamp = (timestamp: string): number => {
-    const parts = timestamp.split(":").map(Number);
-    if (parts.length === 2) {
-      return parts[0] * 60 + parts[1]; // MM:SS
-    } else if (parts.length === 3) {
-      return parts[0] * 3600 + parts[1] * 60 + parts[2]; // HH:MM:SS
-    }
-    return 0;
-  };
-
   const refreshPosition = useCallback(async () => {
     if (!room?.id) return;
 
@@ -219,9 +225,11 @@ export function UserPositionProvider({
       const result = await getCurrentUserPosition(room.id);
       console.log("📍 Position fetch result:", result);
 
-      if (result.success && result.data) {
+      if (result?.success && result?.data) {
         console.log("✅ Setting new position:", result.data);
         setPosition(result.data);
+        // Update last position update time when we refresh from server
+        setLastPositionUpdate(new Date());
       } else {
         console.error("❌ Failed to fetch position:", result.error);
         setError(result.error || "Failed to fetch position");
@@ -241,7 +249,7 @@ export function UserPositionProvider({
       const result = await getRoomParticipants(room.id, { joinedOnly: true });
       console.log("👥 Participants fetch result:", result);
 
-      if (result.success && result.data) {
+      if (result?.success && result?.data) {
         console.log("✅ Setting new participants:", result.data);
         setParticipants(result.data);
       } else {
@@ -266,10 +274,12 @@ export function UserPositionProvider({
         const result = await updateParticipantPosition(room.id, data);
         console.log("📡 Update result:", result);
 
-        if (result.success) {
+        if (result?.success) {
           // Force refresh from server to ensure accuracy
           console.log("✅ Update successful, refreshing from server");
           await refreshPosition();
+          // Update last position update time
+          setLastPositionUpdate(new Date());
           // Note: participants will be updated via real-time subscription
           return true;
         } else {
@@ -285,6 +295,58 @@ export function UserPositionProvider({
     },
     [room?.id, refreshPosition]
   );
+
+  const dismissStalenessModal = useCallback(() => {
+    setShowStalenessModal(false);
+    setLastPositionUpdate(new Date()); // Reset staleness timer
+  }, []);
+
+  const openPositionDialog = useCallback(() => {
+    setShowStalenessModal(false);
+    // Trigger position dialog through callback
+    if (positionDialogCallback) {
+      positionDialogCallback();
+    }
+  }, [positionDialogCallback]);
+
+  // Format position for display
+  const formatPosition = useCallback(() => {
+    if (!position) return "Unknown position";
+
+    if (room.content.content_type === "series" && position.current_season) {
+      try {
+        const seasonData = decodeSeasonData(position.current_season);
+        const episode = position.current_episode || 1;
+        const timestamp = position.playback_timestamp || "0:00";
+        return `S${seasonData.number}E${episode} ${timestamp}`;
+      } catch {
+        const season = position.current_season;
+        const episode = position.current_episode || 1;
+        const timestamp = position.playback_timestamp || "0:00";
+        return `S${season}E${episode} ${timestamp}`;
+      }
+    }
+
+    return position.playback_timestamp || "0:00";
+  }, [position, room.content.content_type]);
+
+  // Check for position staleness
+  useEffect(() => {
+    if (!lastPositionUpdate || !position) return;
+
+    const checkStaleness = () => {
+      const now = new Date();
+      const timeDiff = now.getTime() - lastPositionUpdate.getTime();
+
+      if (timeDiff >= STALENESS_THRESHOLD && !showStalenessModal) {
+        console.log("⏰ Position is stale, showing modal");
+        setShowStalenessModal(true);
+      }
+    };
+
+    const interval = setInterval(checkStaleness, CHECK_INTERVAL);
+    return () => clearInterval(interval);
+  }, [lastPositionUpdate, position, showStalenessModal]);
 
   // Load initial data
   useEffect(() => {
@@ -366,10 +428,23 @@ export function UserPositionProvider({
     positionStats,
     loading,
     error,
+    lastPositionUpdate,
+    showStalenessModal,
     updatePosition,
     refreshPosition,
     refreshParticipants,
+    dismissStalenessModal,
+    openPositionDialog,
   };
+
+  // Render staleness modal and set callback for position dialog
+  useEffect(() => {
+    const callback = () => {
+      // This would trigger the position dialog in the parent component
+      // We'll need to pass this up through context or props
+    };
+    setPositionDialogCallback(() => callback);
+  }, []);
 
   return (
     <UserPositionContext.Provider value={value}>

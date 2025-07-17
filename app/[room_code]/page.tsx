@@ -9,6 +9,7 @@ import { RoomHeader } from "@/components/room/room-header";
 import { RoomNotFound } from "@/components/room/room-not-found";
 import { RoomSidebar } from "@/components/room/room-sidebar";
 import { MessageList } from "@/components/room/message-list";
+import { PositionStalenessModal } from "@/components/room/position-staleness-modal";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { IRoom } from "@/interfaces/room.interface";
 import { IMessage } from "@/interfaces/message.interface";
@@ -19,9 +20,11 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
-import { UserPositionProvider } from "@/contexts/user-position-context";
-
-// Update your page component to pass room to MoviePosition and fix message sending
+import {
+  UserPositionProvider,
+  useUserPosition,
+} from "@/contexts/user-position-context";
+import { decodeSeasonData } from "@/lib/utils/season.utils";
 
 export default function Page() {
   const params = useParams();
@@ -246,7 +249,8 @@ export default function Page() {
         <RoomHeader room={room} />
 
         <UserPositionProvider room={room}>
-          <MoviePosition room={room} /> {/* Pass room prop */}
+          <StalenessModalWrapper room={room} />
+          <MoviePosition room={room} />
           <div className="flex-1 flex flex-col min-h-0">
             {/* Messages Area - only show when joined */}
             {isAuthenticated && userStatus === "joined" ? (
@@ -269,5 +273,58 @@ export default function Page() {
         </UserPositionProvider>
       </SidebarInset>
     </SidebarProvider>
+  );
+}
+
+// Simple wrapper component for the staleness modal
+function StalenessModalWrapper({ room }: { room: IRoom }) {
+  const {
+    position,
+    lastPositionUpdate,
+    showStalenessModal,
+    dismissStalenessModal,
+  } = useUserPosition();
+
+  // Format current position for staleness modal
+  const formatCurrentPosition = () => {
+    if (!position) return "Unknown position";
+
+    if (room.content.content_type === "series" && position.current_season) {
+      try {
+        const seasonData = decodeSeasonData(position.current_season);
+        const episode = position.current_episode || 1;
+        const timestamp = position.playback_timestamp || "0:00";
+        return `S${seasonData.number}E${episode} ${timestamp}`;
+      } catch {
+        const season = position.current_season;
+        const episode = position.current_episode || 1;
+        const timestamp = position.playback_timestamp || "0:00";
+        return `S${season}E${episode} ${timestamp}`;
+      }
+    }
+
+    return position.playback_timestamp || "0:00";
+  };
+
+  // Calculate time elapsed since last position update
+  const getTimeElapsed = () => {
+    if (!lastPositionUpdate) return 0;
+    return Math.floor(
+      (Date.now() - lastPositionUpdate.getTime()) / (1000 * 60)
+    );
+  };
+
+  return (
+    <PositionStalenessModal
+      open={showStalenessModal}
+      onUpdatePosition={() => {
+        // This would trigger opening the position dialog
+        // For now, just dismiss the modal - you can connect this to your position dialog
+        dismissStalenessModal();
+      }}
+      onDismiss={dismissStalenessModal}
+      currentPosition={formatCurrentPosition()}
+      timeElapsed={getTimeElapsed()}
+    />
   );
 }

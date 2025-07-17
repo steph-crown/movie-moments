@@ -7,12 +7,13 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { IMessage } from "@/interfaces/message.interface";
 import { IRoom } from "@/interfaces/room.interface";
-import { decodeSeasonData } from "@/lib/utils/season.utils";
+import { decodeSeasonData, parseTimestamp } from "@/lib/utils/season.utils";
 import clsx from "clsx";
 import { formatDistanceToNow } from "date-fns";
 import { Loader2, MoreHorizontal, Reply, SmilePlus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import { useUserPosition } from "@/contexts/user-position-context";
 
 interface MessageListProps {
   messages: IMessage[];
@@ -51,18 +52,65 @@ function MessageItem({
   const [showActions, setShowActions] = useState(false);
   const [reactingWith, setReactingWith] = useState<string | null>(null);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(
+    null
+  );
   const { user } = useAuth();
+  const { position: userPosition } = useUserPosition();
+
+  // Touch handling for mobile
+  const handleTouchStart = () => {
+    const timer = setTimeout(() => {
+      setShowActions(true);
+      // Haptic feedback on supported devices
+      if ("vibrate" in navigator) {
+        navigator.vibrate(50);
+      }
+    }, 500); // 500ms long press
+    setLongPressTimer(timer);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  const handleTouchCancel = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer);
+      setLongPressTimer(null);
+    }
+  };
+
+  // Close actions when clicking elsewhere
+  useEffect(() => {
+    const handleClickOutside = () => {
+      setShowActions(false);
+    };
+
+    if (showActions) {
+      document.addEventListener("click", handleClickOutside);
+      document.addEventListener("touchstart", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
+  }, [showActions]);
 
   const getPositionIcon = () => {
     if (room.content.content_type === "series") {
-      return "📺"; // TV emoji for series
+      return "📺";
     }
-    return "🎬"; // Movie camera emoji for movies
+    return "🎬";
   };
 
   const formatTimestamp = (timestamp?: string | null) => {
     if (!timestamp) return "";
-    return timestamp; // Already in string format like "1:23:45"
+    return timestamp;
   };
 
   const formatMessageTime = (utcTimestamp: string) => {
@@ -82,13 +130,24 @@ function MessageItem({
   };
 
   const getPositionText = () => {
+    // Don't show position for replies (thread_depth > 0)
+    if (message.thread_depth > 0) return null;
+
+    // Don't show position if message doesn't have timestamp data
+    if (
+      !message.current_season &&
+      !message.current_episode &&
+      !message.playback_timestamp
+    ) {
+      return null;
+    }
+
     if (
       room.content.content_type === "series" &&
       message.current_season &&
       message.current_episode
     ) {
       try {
-        // Try to decode season data
         const seasonData = decodeSeasonData(message.current_season);
         return `S${seasonData.number}E${message.current_episode}${
           message.playback_timestamp
@@ -96,7 +155,6 @@ function MessageItem({
             : ""
         }`;
       } catch {
-        // Fallback if decoding fails
         return `S${message.current_season}E${message.current_episode}${
           message.playback_timestamp
             ? ` • ${formatTimestamp(message.playback_timestamp)}`
@@ -110,11 +168,101 @@ function MessageItem({
     return null;
   };
 
+  // Spoiler detection logic
+  const shouldBlurMessage = () => {
+    if (room.spoiler_policy !== "hide_spoilers" || !userPosition) return false;
+
+    // Don't blur own messages
+    if (isOwnMessage) return false;
+
+    // Don't blur messages without position data
+    if (
+      !message.current_season &&
+      !message.current_episode &&
+      !message.playback_timestamp
+    ) {
+      return false;
+    }
+
+    // Check the message to compare (message itself or its parent for replies)
+    const messageToCheck =
+      message.thread_depth > 0 && parentMessage ? parentMessage : message;
+
+    if (
+      !messageToCheck.current_season &&
+      !messageToCheck.current_episode &&
+      !messageToCheck.playback_timestamp
+    ) {
+      return false;
+    }
+
+    // For movies, compare timestamps
+    if (room.content.content_type === "movie") {
+      const userTimestamp = parseTimestamp(
+        userPosition.playback_timestamp || "0:00"
+      );
+      const messageTimestamp = parseTimestamp(
+        messageToCheck.playback_timestamp || "0:00"
+      );
+      return messageTimestamp > userTimestamp + 60; // 1 minute buffer
+    }
+
+    // For series, compare season/episode/timestamp
+    if (room.content.content_type === "series") {
+      let userSeason = 1;
+      let messageSeason = 1;
+
+      // Parse user season
+      if (userPosition.current_season) {
+        try {
+          const decoded = decodeSeasonData(userPosition.current_season);
+          userSeason = decoded.number;
+        } catch {
+          userSeason = parseInt(userPosition.current_season) || 1;
+        }
+      }
+
+      // Parse message season
+      if (messageToCheck.current_season) {
+        try {
+          const decoded = decodeSeasonData(messageToCheck.current_season);
+          messageSeason = decoded.number;
+        } catch {
+          messageSeason = parseInt(messageToCheck.current_season) || 1;
+        }
+      }
+
+      const userEpisode = userPosition.current_episode || 1;
+      const messageEpisode = messageToCheck.current_episode || 1;
+
+      // If message is from a later season, blur it
+      if (messageSeason > userSeason) return true;
+
+      // If same season but later episode, blur it
+      if (messageSeason === userSeason && messageEpisode > userEpisode)
+        return true;
+
+      // If same season and episode, check timestamp
+      if (messageSeason === userSeason && messageEpisode === userEpisode) {
+        const userTimestamp = parseTimestamp(
+          userPosition.playback_timestamp || "0:00"
+        );
+        const messageTimestamp = parseTimestamp(
+          messageToCheck.playback_timestamp || "0:00"
+        );
+        return messageTimestamp > userTimestamp + 60; // 1 minute buffer
+      }
+    }
+
+    return false;
+  };
+
   const handleReact = async (emoji: string) => {
     if (!onReact || reactingWith) return;
 
     setReactingWith(emoji);
     setEmojiPickerOpen(false);
+    setShowActions(false); // Close actions after reacting
     try {
       await onReact(message.id, emoji);
     } catch (error) {
@@ -122,6 +270,11 @@ function MessageItem({
     } finally {
       setReactingWith(null);
     }
+  };
+
+  const handleReplyClick = () => {
+    setShowActions(false); // Close actions after replying
+    onReply?.(message);
   };
 
   const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "😡", "🔥", "💯"];
@@ -149,6 +302,7 @@ function MessageItem({
   );
 
   const reactionArray = groupedReactions ? Object.values(groupedReactions) : [];
+  const isBlurred = shouldBlurMessage();
 
   return (
     <div
@@ -159,6 +313,9 @@ function MessageItem({
       )}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
     >
       <div
         className={clsx(
@@ -218,9 +375,22 @@ function MessageItem({
                 ? "bg-[#c7d2fe] rounded-br-md"
                 : "bg-muted rounded-bl-md",
               message.thread_depth > 0 && "mt-1",
-              isHighlighted && "ring-8 ring-primary rounded-lg opacity-60"
+              isHighlighted && "ring-8 ring-primary rounded-lg opacity-60",
+              isBlurred && "backdrop-blur-sm bg-opacity-50"
             )}
           >
+            {/* Spoiler overlay */}
+            {isBlurred && (
+              <div className="absolute inset-0 bg-black/20 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10">
+                <div className="text-xs font-medium text-center px-2">
+                  <span className="block">⚠️ Spoiler Alert</span>
+                  <span className="text-muted-foreground">
+                    This message contains future content
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Header for first message in group (others only) */}
             {!isOwnMessage && isFirstInGroup && (
               <div className="flex items-center gap-2 mb-2">
@@ -261,7 +431,12 @@ function MessageItem({
             )}
 
             {/* Message text */}
-            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+            <div
+              className={clsx(
+                "text-sm leading-relaxed whitespace-pre-wrap break-words",
+                isBlurred && "blur-sm"
+              )}
+            >
               {message.message_text}
             </div>
 
@@ -291,12 +466,13 @@ function MessageItem({
         </div>
 
         {/* Floating action buttons */}
-        {showActions && (
+        {showActions && !isBlurred && (
           <div
             className={clsx(
-              "absolute top-0 flex items-center gap-1 z-10 transition-opacity",
+              "absolute top-0 flex items-center gap-1 z-20 transition-opacity",
               isOwnMessage ? "-left-20 opacity-100" : "-right-20 opacity-100"
             )}
+            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking actions
           >
             {/* Emoji picker */}
             <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
@@ -336,7 +512,7 @@ function MessageItem({
               variant="secondary"
               size="sm"
               className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
-              onClick={() => onReply?.(message)}
+              onClick={handleReplyClick}
             >
               <Reply className="h-4 w-4" />
             </Button>
@@ -357,7 +533,7 @@ function MessageItem({
                   variant="ghost"
                   size="sm"
                   className="w-full justify-start text-xs"
-                  onClick={() => onReply?.(message)}
+                  onClick={handleReplyClick}
                 >
                   <Reply className="h-3 w-3 mr-2" />
                   Reply
@@ -514,13 +690,7 @@ export function MessageList({
         setTimeout(scrollToBottom, 100);
       }
     }
-  }, [
-    messages.length > 0,
-    loading,
-    // restoreScrollPosition,
-    // scrollToBottom,
-    // scrollPositionKey,
-  ]);
+  }, [messages.length > 0, loading]);
 
   useEffect(() => {
     if (messages.length > 0 && shouldAutoScroll) {
