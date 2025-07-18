@@ -78,7 +78,7 @@ export function UserPositionProvider({
   const [lastPositionUpdate, setLastPositionUpdate] = useState<Date | null>(
     null
   );
-  const [showStalenessModal, setShowStalenessModal] = useState(false);
+  const [showStalenessModal, setShowStalenessModal] = useState(true);
   const [positionDialogCallback, setPositionDialogCallback] = useState<
     (() => void) | null
   >(null);

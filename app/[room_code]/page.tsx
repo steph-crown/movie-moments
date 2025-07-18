@@ -25,6 +25,7 @@ import {
   useUserPosition,
 } from "@/contexts/user-position-context";
 import { decodeSeasonData } from "@/lib/utils/season.utils";
+import { PositionSetupDialog } from "@/components/room/position-setup-dialog";
 
 export default function Page() {
   const params = useParams();
@@ -278,6 +279,8 @@ export default function Page() {
 
 // Simple wrapper component for the staleness modal
 function StalenessModalWrapper({ room }: { room: IRoom }) {
+  const [showPositionDialog, setShowPositionDialog] = useState(false);
+
   const {
     position,
     lastPositionUpdate,
@@ -315,16 +318,27 @@ function StalenessModalWrapper({ room }: { room: IRoom }) {
   };
 
   return (
-    <PositionStalenessModal
-      open={showStalenessModal}
-      onUpdatePosition={() => {
-        // This would trigger opening the position dialog
-        // For now, just dismiss the modal - you can connect this to your position dialog
-        dismissStalenessModal();
-      }}
-      onDismiss={dismissStalenessModal}
-      currentPosition={formatCurrentPosition()}
-      timeElapsed={getTimeElapsed()}
-    />
+    <>
+      <PositionStalenessModal
+        open={showStalenessModal}
+        onUpdatePosition={() => {
+          setShowPositionDialog(true);
+          dismissStalenessModal();
+        }}
+        onDismiss={dismissStalenessModal}
+        currentPosition={formatCurrentPosition()}
+        timeElapsed={getTimeElapsed()}
+      />
+
+      <PositionSetupDialog
+        room={room}
+        open={showPositionDialog}
+        onSuccess={() => {
+          setShowPositionDialog(false);
+        }}
+        onOpenChange={setShowPositionDialog}
+        allowClose={true}
+      />
+    </>
   );
 }

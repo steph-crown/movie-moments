@@ -69,8 +69,8 @@ export function PositionStalenessModal({
             Still watching?
           </DialogTitle>
           <DialogDescription>
-            You&apos;ve been at the same position for {timeElapsed} minutes. Are
-            you still watching?
+            You&apos;ve been at the same position for some time. Are you still
+            watching?
           </DialogDescription>
         </DialogHeader>
 
@@ -84,19 +84,20 @@ export function PositionStalenessModal({
           </div>
         </div>
 
-        <DialogFooter className="flex-col gap-2">
+        <DialogFooter className="!flex-col gap-2">
           <div className="flex gap-2 w-full">
             <Button
               variant="outline"
               onClick={handleStillHere}
               className="flex-1"
             >
-              Still here ({countdown}s)
+              Yes, still here ({countdown}s)
             </Button>
             <Button onClick={handleUpdatePosition} className="flex-1">
               Update position
             </Button>
           </div>
+
           <p className="text-xs text-muted-foreground text-center">
             This helps keep track of spoilers and sync with other viewers
           </p>
