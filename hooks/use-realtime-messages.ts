@@ -75,10 +75,12 @@ export function useRealtimeMessages({
 
   // Load initial messages
   const loadMessages = useCallback(async () => {
-    if (!enabled) return;
+    // if (!enabled) return;
 
     setLoading(true);
     setError(null);
+
+    console.log("whatttttttt");
 
     try {
       const { data, error } = await supabase
@@ -110,6 +112,8 @@ export function useRealtimeMessages({
         .eq("room_id", roomId)
         .eq("is_deleted", false)
         .order("created_at", { ascending: true });
+
+      console.log({ therealdata: data });
 
       if (error) throw error;
 
@@ -243,9 +247,9 @@ export function useRealtimeMessages({
 
   // Set up realtime subscription
   useEffect(() => {
-    if (!enabled) return;
-
     loadMessages();
+
+    if (!enabled) return;
 
     // Create realtime channel
     const realtimeChannel = supabase

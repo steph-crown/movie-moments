@@ -64,7 +64,9 @@ export default function Page() {
   }, []);
 
   // Enable realtime messages only when user is joined
-  const enableRealtime = room && isAuthenticated && userStatus === "joined";
+  // const enableRealtime = room && isAuthenticated && userStatus === "joined";
+  const enableRealtime =
+    room && (room.privacy_level === "public" || userStatus === "joined");
 
   const {
     messages,
@@ -90,6 +92,7 @@ export default function Page() {
         includeParticipantStatus: true,
         allowUnauthenticatedPublic: true,
       });
+      console.log({ stomp: result });
 
       if (result.requiresAuth) {
         toast.error("Please log in to access this room");
@@ -258,7 +261,10 @@ export default function Page() {
 
           <div className="flex-1 flex flex-col min-h-0">
             {/* Messages Area - only show when joined */}
-            {isAuthenticated && userStatus === "joined" ? (
+            {(room.privacy_level === "private" &&
+              isAuthenticated &&
+              userStatus === "joined") ||
+            room.privacy_level === "public" ? (
               <div className="flex-1 overflow-hidden relative">
                 <MessageList
                   messages={messages}
