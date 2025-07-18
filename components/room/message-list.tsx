@@ -1050,7 +1050,7 @@ export function MessageList({
 
       {/* Scroll to bottom button */}
       {userScrolledUp && (
-        <div className="absolute bottom-5 right-6 z-[1000]">
+        <div className="absolute bottom-5 right-6 z-[10]">
           <Button
             size="sm"
             className="rounded-full shadow-lg border bg-background text-foreground hover:bg-muted"

@@ -256,7 +256,7 @@ export function RoomInfo({ room }: { room: IRoom }) {
           </Button>
         </SheetTrigger>
 
-        <SheetContent className="w-[400px] sm:w-[540px] overflow-y-auto p-6 flex flex-col">
+        <SheetContent className="w-[400px] max-w-screen sm:w-[540px] overflow-y-auto p-6 flex flex-col">
           <SheetHeader>
             <SheetTitle className="text-left flex items-center gap-1">
               {room.title}
@@ -414,7 +414,7 @@ export function RoomInfo({ room }: { room: IRoom }) {
                   onClick={copyLink}
                   variant="outline"
                   size="sm"
-                  className="shrink-0"
+                  className="shrink-0 !h-full"
                 >
                   {linkCopied ? (
                     <>
@@ -697,7 +697,8 @@ export function RoomInfo({ room }: { room: IRoom }) {
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to leave &quot;{room.title}&quot;?
-              You&apos;ll need to be invited again to rejoin this room.
+              {room.privacy_level === "private" &&
+                "You'll need to be invited again to rejoin this room."}
             </DialogDescription>
           </DialogHeader>
 

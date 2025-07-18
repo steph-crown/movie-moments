@@ -1,12 +1,16 @@
 "use client";
 
-import {
-  IconDots,
-  IconShare3,
-  IconLogout,
-  IconExternalLink,
-} from "@tabler/icons-react";
+import { IconDots, IconExternalLink, IconLogout } from "@tabler/icons-react";
 
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,25 +27,15 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useAuth } from "@/hooks/use-auth";
 import { IRoom } from "@/interfaces/room.interface";
 import { fetchUserRooms, leaveRoom } from "@/lib/actions/rooms";
-import { UsersRound, Loader2, Lock, Play, AlertTriangle } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import clsx from "clsx";
+import { AlertTriangle, Loader2, Lock, Play, UsersRound } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
-import { ShareBtn } from "@/components/btns/share-btn";
-import { useAuth } from "@/hooks/use-auth";
 
 export function NavRooms() {
   const { isMobile } = useSidebar();
@@ -52,7 +46,7 @@ export function NavRooms() {
   const [hasMore, setHasMore] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [page, setPage] = useState(1);
-  const [showShareModal, setShowShareModal] = useState(false);
+  // const [showShareModal, setShowShareModal] = useState(false);
   const [showLeaveModal, setShowLeaveModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState<IRoom | null>(null);
   const [isLeaving, setIsLeaving] = useState(false);
@@ -108,11 +102,11 @@ export function NavRooms() {
     router.push(`/${room.room_code}`);
   };
 
-  const handleShareRoom = (room: IRoom, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedRoom(room);
-    setShowShareModal(true);
-  };
+  // const handleShareRoom = (room: IRoom, e: React.MouseEvent) => {
+  //   e.stopPropagation();
+  //   setSelectedRoom(room);
+  //   setShowShareModal(true);
+  // };
 
   const handleLeaveRoom = async (room: IRoom, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -298,12 +292,24 @@ export function NavRooms() {
                           <IconExternalLink />
                           <span>Open</span>
                         </DropdownMenuItem>
-                        <DropdownMenuItem
+
+                        {/* <ShareBtn
+                          room={room}
+                          triggerNode={
+                            <DropdownMenuItem
+                              onClick={(e) => handleShareRoom(room, e)}
+                            >
+                              <IconShare3 />
+                              <span>Share</span>
+                            </DropdownMenuItem>
+                          }
+                        /> */}
+                        {/* <DropdownMenuItem
                           onClick={(e) => handleShareRoom(room, e)}
                         >
                           <IconShare3 />
                           <span>Share</span>
-                        </DropdownMenuItem>
+                        </DropdownMenuItem> */}
                         {!isCreator && (
                           <>
                             <DropdownMenuSeparator />
@@ -349,7 +355,7 @@ export function NavRooms() {
       </SidebarGroup>
 
       {/* Share Modal */}
-      {selectedRoom && showShareModal && <ShareBtn room={selectedRoom} />}
+      {/* {selectedRoom && showShareModal && <ShareBtn room={selectedRoom} />} */}
 
       {/* Leave Room Confirmation Modal */}
       <Dialog open={showLeaveModal} onOpenChange={setShowLeaveModal}>
@@ -361,7 +367,8 @@ export function NavRooms() {
             </DialogTitle>
             <DialogDescription>
               Are you sure you want to leave &quot;{selectedRoom?.title}&quot;?
-              You&apos;ll need to be invited again to rejoin this room.
+              {selectedRoom?.privacy_level === "private" &&
+                "You'll need to be invited again to rejoin this room."}
             </DialogDescription>
           </DialogHeader>
 

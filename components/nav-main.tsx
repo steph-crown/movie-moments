@@ -10,6 +10,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { CreateRoomBtn } from "./btns/create-room-btn";
+import { JoinRoomBtn } from "./btns/join-room-btn";
 
 export function NavMain({
   items,
@@ -33,7 +34,11 @@ export function NavMain({
               <span>Quick Create</span>
             </SidebarMenuButton> */}
 
-            <CreateRoomBtn fullWidth />
+            <div className="flex flex-col gap-2 w-full">
+              <CreateRoomBtn fullWidth />
+
+              <JoinRoomBtn btnClassName="w-full" />
+            </div>
 
             {/* <Button
               size="icon"
