@@ -61,8 +61,8 @@ export function RoomNotFound({
 
           {/* Help text */}
           <p className="text-xs text-muted-foreground mt-6">
-            Need help? Make sure you have the correct room code or ask the room
-            creator to invite you.
+            💡 Need help? Make sure you have the correct room code or ask the
+            room creator to invite you.
           </p>
         </div>
       </div>

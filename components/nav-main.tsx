@@ -11,6 +11,9 @@ import {
 } from "@/components/ui/sidebar";
 import { CreateRoomBtn } from "./btns/create-room-btn";
 import { JoinRoomBtn } from "./btns/join-room-btn";
+import { useAuth } from "@/hooks/use-auth";
+import { LoginBtn } from "./btns/login-btn";
+import { ViewRoomBtn } from "./btns/view-room-btn";
 
 export function NavMain({
   items,
@@ -21,6 +24,8 @@ export function NavMain({
     icon?: Icon;
   }[];
 }) {
+  const { user } = useAuth();
+
   return (
     <SidebarGroup>
       <SidebarGroupContent className="flex flex-col gap-2">
@@ -35,9 +40,19 @@ export function NavMain({
             </SidebarMenuButton> */}
 
             <div className="flex flex-col gap-2 w-full">
-              <CreateRoomBtn fullWidth />
+              {user ? (
+                <>
+                  <CreateRoomBtn fullWidth />
 
-              <JoinRoomBtn btnClassName="w-full" />
+                  <JoinRoomBtn btnClassName="w-full" />
+                </>
+              ) : (
+                <>
+                  <LoginBtn />
+
+                  <ViewRoomBtn btnClassName="w-full" text="View another room" />
+                </>
+              )}
             </div>
 
             {/* <Button

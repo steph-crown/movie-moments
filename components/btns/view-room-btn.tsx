@@ -17,7 +17,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export function ViewRoomBtn({ btnClassName }: { btnClassName?: string }) {
+export function ViewRoomBtn({
+  btnClassName,
+  text,
+}: {
+  btnClassName?: string;
+  text?: string;
+}) {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -85,7 +91,7 @@ export function ViewRoomBtn({ btnClassName }: { btnClassName?: string }) {
       <DialogTrigger asChild>
         <Button variant="outline" className={btnClassName} size="lg">
           <Users className="w-4 h-4" />
-          View Room
+          {text || "View Room"}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
