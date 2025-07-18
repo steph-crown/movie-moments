@@ -4,7 +4,17 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/use-auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { IMessage } from "@/interfaces/message.interface";
 import { IRoom } from "@/interfaces/room.interface";
 import { decodeSeasonData, parseTimestamp } from "@/lib/utils/season.utils";
@@ -17,6 +27,7 @@ import {
   SmilePlus,
   Eye,
   MapPin,
+  AlertTriangle,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -50,6 +61,90 @@ interface MessageItemProps {
   isHighlighted?: boolean;
 }
 
+// Spoiler confirmation modal component
+function SpoilerConfirmationModal({
+  open,
+  onOpenChange,
+  onConfirm,
+  spoilerText,
+  room,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConfirm: () => void;
+  spoilerText: string;
+  room: IRoom;
+}) {
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  const handleConfirm = () => {
+    if (dontShowAgain) {
+      localStorage.setItem("spoiler-modal-disabled", "true");
+    }
+    onConfirm();
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-yellow-500" />
+            Potential Spoiler Warning
+          </DialogTitle>
+          <DialogDescription>
+            This message contains a comment about a future point in{" "}
+            {room.content.content_type === "series"
+              ? "the series"
+              : "the movie"}
+            .
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div className="p-4 border rounded-lg bg-yellow-50 dark:bg-yellow-950/20">
+            <div className="flex items-center gap-2 mb-2">
+              <MapPin className="h-4 w-4 text-yellow-600" />
+              <span className="font-medium text-sm">
+                Position: {spoilerText}
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              This message was sent from a position ahead of where you currently
+              are. It might contain spoilers about upcoming events.
+            </p>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="dont-show-again"
+              checked={dontShowAgain}
+              onCheckedChange={setDontShowAgain}
+            />
+            <label
+              htmlFor="dont-show-again"
+              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+            >
+              Don&apos;t show this warning again
+            </label>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleConfirm}>
+            <Eye className="mr-2 h-4 w-4" />
+            Show Message
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function MessageItem({
   message,
   room,
@@ -68,26 +163,71 @@ function MessageItem({
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(
     null
   );
-  const [isUnblurred, setIsUnblurred] = useState(false); // New: Track manual unblur state
+  const [isUnblurred, setIsUnblurred] = useState(false);
+  const [showSpoilerModal, setShowSpoilerModal] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragDistance, setDragDistance] = useState(0);
+  const [startX, setStartX] = useState(0);
+
   const { user } = useAuth();
   const { position: userPosition } = useUserPosition();
+  const isMobile = useIsMobile();
+  const messageRef = useRef<HTMLDivElement>(null);
 
   // Touch handling for mobile
-  const handleTouchStart = () => {
-    const timer = setTimeout(() => {
-      setShowActions(true);
-      // Haptic feedback on supported devices
-      if ("vibrate" in navigator) {
-        navigator.vibrate(50);
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isMobile) {
+      const touch = e.touches[0];
+      setStartX(touch.clientX);
+
+      // Disable text selection on long press
+      const timer = setTimeout(() => {
+        setShowActions(true);
+        // Haptic feedback on supported devices
+        if ("vibrate" in navigator) {
+          navigator.vibrate(50);
+        }
+      }, 500); // 500ms long press
+      setLongPressTimer(timer);
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (isMobile && startX > 0) {
+      const touch = e.touches[0];
+      const distance = touch.clientX - startX;
+
+      // Only allow drag to the right (reply gesture)
+      if (distance > 0) {
+        setDragDistance(Math.min(distance, 100)); // Max drag distance
+        if (distance > 20 && !isDragging) {
+          setIsDragging(true);
+          // Cancel long press timer if dragging
+          if (longPressTimer) {
+            clearTimeout(longPressTimer);
+            setLongPressTimer(null);
+          }
+        }
       }
-    }, 500); // 500ms long press
-    setLongPressTimer(timer);
+    }
   };
 
   const handleTouchEnd = () => {
-    if (longPressTimer) {
-      clearTimeout(longPressTimer);
-      setLongPressTimer(null);
+    if (isMobile) {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+      }
+
+      // If dragged enough, trigger reply
+      if (isDragging && dragDistance > 50) {
+        onReply?.(message);
+      }
+
+      // Reset drag state
+      setIsDragging(false);
+      setDragDistance(0);
+      setStartX(0);
     }
   };
 
@@ -96,6 +236,9 @@ function MessageItem({
       clearTimeout(longPressTimer);
       setLongPressTimer(null);
     }
+    setIsDragging(false);
+    setDragDistance(0);
+    setStartX(0);
   };
 
   // Close actions when clicking elsewhere
@@ -322,6 +465,19 @@ function MessageItem({
 
   const handleUnblurClick = (e: React.MouseEvent) => {
     e.stopPropagation();
+
+    // Check if spoiler modal is disabled
+    const spoilerModalDisabled =
+      localStorage.getItem("spoiler-modal-disabled") === "true";
+
+    if (spoilerModalDisabled) {
+      setIsUnblurred(true);
+    } else {
+      setShowSpoilerModal(true);
+    }
+  };
+
+  const handleSpoilerConfirm = () => {
     setIsUnblurred(true);
   };
 
@@ -353,274 +509,302 @@ function MessageItem({
   const isBlurred = shouldBlurMessage();
 
   return (
-    <div
-      id={`message-${message.id}`}
-      className={clsx(
-        "group px-4 py-1 hover:bg-muted/20 transition-all duration-300 relative",
-        isOwnMessage ? "flex justify-end" : "flex justify-start"
-      )}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchCancel}
-    >
+    <>
       <div
+        ref={messageRef}
+        id={`message-${message.id}`}
         className={clsx(
-          "max-w-[90%] relative",
-          isOwnMessage ? "order-2" : "order-1"
+          "group px-4 py-1 hover:bg-muted/20 transition-all duration-300 relative",
+          isOwnMessage ? "flex justify-end" : "flex justify-start",
+          isDragging && "bg-muted/30"
         )}
+        style={{
+          transform:
+            isMobile && isDragging
+              ? `translateX(${dragDistance}px)`
+              : undefined,
+          userSelect: isMobile ? "none" : "auto", // Disable text selection on mobile
+        }}
+        onMouseEnter={() => !isMobile && setShowActions(true)}
+        onMouseLeave={() => !isMobile && setShowActions(false)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchCancel}
       >
-        {/* Reply reference */}
-        {message.thread_depth > 0 && parentMessage && (
-          <div className="mb-2 ml-2 opacity-70">
-            <button
-              onClick={() => onScrollToParent?.(parentMessage.id)}
-              className="flex items-center gap-2 text-xs text-muted-foreground border-l-2 border-muted pl-3 py-1 hover:bg-muted/20 rounded-r transition-colors cursor-pointer"
-            >
-              <Reply className="h-3 w-3" />
-              <span className="font-medium">
-                {parentMessage.user_id === user?.id
-                  ? "You"
-                  : parentMessage.user.display_name}
-              </span>
-              <span className="truncate max-w-[200px]">
-                {parentMessage.message_text}
-              </span>
-            </button>
+        {/* Reply indicator for drag gesture */}
+        {isDragging && dragDistance > 20 && (
+          <div className="absolute left-2 top-1/2 transform -translate-y-1/2 opacity-50">
+            <Reply className="h-5 w-5 text-primary" />
           </div>
         )}
 
-        <div className="flex items-end gap-2">
-          {/* Avatar for others */}
-          {!isOwnMessage && (
-            <div className="flex-shrink-0 mb-1">
-              {showAvatar && isFirstInGroup ? (
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={message.user.avatar_url} />
-                  <AvatarFallback className="text-xs bg-primary/10">
-                    {message.user.display_name.charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-              ) : (
-                <div className="w-8 h-8 flex items-center justify-center">
-                  <span
-                    className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-default"
-                    title={messageTime.fullFormat}
-                  >
-                    {messageTime.timeOnly}
-                  </span>
-                </div>
-              )}
+        <div
+          className={clsx(
+            "max-w-[90%] relative",
+            isOwnMessage ? "order-2" : "order-1"
+          )}
+        >
+          {/* Reply reference */}
+          {message.thread_depth > 0 && parentMessage && (
+            <div className="mb-2 ml-2 opacity-70">
+              <button
+                onClick={() => onScrollToParent?.(parentMessage.id)}
+                className="flex items-center gap-2 text-xs text-muted-foreground border-l-2 border-muted pl-3 py-1 hover:bg-muted/20 rounded-r transition-colors cursor-pointer"
+              >
+                <Reply className="h-3 w-3" />
+                <span className="font-medium">
+                  {parentMessage.user_id === user?.id
+                    ? "You"
+                    : parentMessage.user.display_name}
+                </span>
+                <span className="truncate max-w-[200px]">
+                  {parentMessage.message_text}
+                </span>
+              </button>
             </div>
           )}
 
-          {/* Message bubble */}
-          <div
-            className={clsx(
-              "rounded-2xl px-4 py-2 relative max-w-full transition-all",
-              isOwnMessage
-                ? "bg-[#c7d2fe] rounded-br-md"
-                : "bg-muted rounded-bl-md",
-              message.thread_depth > 0 && "mt-1",
-              isHighlighted && "ring-8 ring-primary rounded-lg opacity-60"
-            )}
-          >
-            {/* Spoiler overlay */}
-            {isBlurred && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div
-                      className="absolute inset-0 bg-black/10 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10 cursor-pointer hover:bg-black/30 transition-colors"
-                      onClick={handleUnblurClick}
+          <div className="flex items-end gap-2">
+            {/* Avatar for others */}
+            {!isOwnMessage && (
+              <div className="flex-shrink-0 mb-1">
+                {showAvatar && isFirstInGroup ? (
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={message.user.avatar_url} />
+                    <AvatarFallback className="text-xs bg-primary/10">
+                      {message.user.display_name.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <span
+                      className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity cursor-default"
+                      title={messageTime.fullFormat}
                     >
-                      <div className="text-xs font-medium text-center px-2">
-                        <div className="flex items-center gap-1 justify-center mb-1">
-                          <Eye className="h-3 w-3" />
-                          <span>Potential Spoiler</span>
-                        </div>
-                        <span className="text-muted-foreground text-[10px]">
-                          Click to reveal
-                        </span>
-                      </div>
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs">
-                    <div className="space-y-2">
-                      <p className="font-medium">
-                        This message contains a comment about future{" "}
-                        {room.content.content_type === "series"
-                          ? "episodes"
-                          : "scenes"}
-                      </p>
-                      <div className="flex items-center gap-1 text-xs">
-                        <MapPin className="h-3 w-3" />
-                        <span>Position: {getSpoilerPositionText()}</span>
-                      </div>
-                      <p className="text-xs opacity-75">
-                        Click to view anyway or update your position if
-                        you&apos;ve passed this point
-                      </p>
-                    </div>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            )}
-
-            {/* Header for first message in group (others only) */}
-            {!isOwnMessage && isFirstInGroup && (
-              <div className="flex items-center gap-2 mb-2">
-                <span className="font-semibold text-sm">
-                  {message.user.display_name}
-                </span>
-                <span className="text-[.6835rem] opacity-70">
-                  {messageTime.timeOnly}
-                </span>
-                {getPositionText() && (
-                  <Badge
-                    variant="outline"
-                    className="text-[10px] px-1.5 py-0 h-auto border-blue-200 bg-blue-50 text-blue-700 flex items-center gap-1"
-                    title={`Viewer position: ${getPositionText()}`}
-                  >
-                    <span className="font-medium">{getPositionIcon()}</span>
-                    {getPositionText()}
-                  </Badge>
+                      {messageTime.timeOnly}
+                    </span>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* Own message header */}
-            {isOwnMessage && isFirstInGroup && getPositionText() && (
-              <div className="flex items-center justify-end gap-2 mb-2">
-                <Badge
-                  variant="outline"
-                  className="text-[10px] px-1.5 py-0 h-auto border-blue-500 text-blue-700 flex items-center gap-1"
-                  title={`Your position: ${getPositionText()}`}
-                >
-                  <span className="font-medium">{getPositionIcon()}</span>
-                  {getPositionText()}
-                </Badge>
-                <span className="text-xs opacity-70">
-                  {messageTime.timeOnly}
-                </span>
-              </div>
-            )}
-
-            {/* Message text */}
+            {/* Message bubble */}
             <div
               className={clsx(
-                "text-sm leading-relaxed whitespace-pre-wrap break-words",
-                isBlurred && "blur-sm"
+                "rounded-2xl px-4 py-2 relative max-w-full transition-all",
+                isOwnMessage
+                  ? "bg-[#c7d2fe] rounded-br-md"
+                  : "bg-muted rounded-bl-md",
+                message.thread_depth > 0 && "mt-1",
+                isHighlighted && "ring-8 ring-primary rounded-lg opacity-60"
               )}
             >
-              {message.message_text}
-            </div>
+              {/* Spoiler overlay */}
+              {isBlurred && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        className="absolute inset-0 bg-black/10 backdrop-blur-sm rounded-2xl flex items-center justify-center z-10 cursor-pointer hover:bg-black/30 transition-colors"
+                        onClick={handleUnblurClick}
+                      >
+                        <div className="text-xs font-medium text-center px-2">
+                          <div className="flex items-center gap-1 justify-center mb-1">
+                            <Eye className="h-3 w-3" />
+                            <span>Potential Spoiler</span>
+                          </div>
+                          <span className="text-muted-foreground text-[10px]">
+                            Click to reveal
+                          </span>
+                        </div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <div className="space-y-2">
+                        <p className="font-medium">
+                          This message contains a comment about future{" "}
+                          {room.content.content_type === "series"
+                            ? "episodes"
+                            : "scenes"}
+                        </p>
+                        <div className="flex items-center gap-1 text-xs">
+                          <MapPin className="h-3 w-3" />
+                          <span>Position: {getSpoilerPositionText()}</span>
+                        </div>
+                        <p className="text-xs opacity-75">
+                          Click to view anyway or update your position if
+                          you&apos;ve passed this point
+                        </p>
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
 
-            {/* Reactions */}
-            {reactionArray.length > 0 && (
-              <div className="flex gap-1 mt-2 flex-wrap">
-                {reactionArray.map((reaction) => (
-                  <Button
-                    key={reaction.emoji}
-                    variant="ghost"
-                    size="sm"
-                    className={clsx(
-                      "h-6 px-2 text-xs rounded-full border border-border/50 hover:border-border",
-                      isOwnMessage
-                        ? "bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
-                        : "bg-background/70 hover:bg-background"
-                    )}
-                    onClick={() => handleReact(reaction.emoji)}
-                    title={`${reaction.users.join(", ")} reacted with ${reaction.emoji}`}
-                  >
-                    {reaction.emoji} {reaction.count}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Floating action buttons */}
-        {showActions && !isBlurred && (
-          <div
-            className={clsx(
-              "absolute top-0 flex items-center gap-1 z-20 transition-opacity",
-              isOwnMessage ? "-left-20 opacity-100" : "-right-20 opacity-100"
-            )}
-            onClick={(e) => e.stopPropagation()} // Prevent closing when clicking actions
-          >
-            {/* Emoji picker */}
-            <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
-                >
-                  {reactingWith ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <SmilePlus className="h-4 w-4" />
+              {/* Header for first message in group (others only) */}
+              {!isOwnMessage && isFirstInGroup && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-semibold text-sm">
+                    {message.user.display_name}
+                  </span>
+                  <span className="text-[.6835rem] opacity-70">
+                    {messageTime.timeOnly}
+                  </span>
+                  {getPositionText() && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] px-1.5 py-0 h-auto border-blue-200 bg-blue-50 text-blue-700 flex items-center gap-1"
+                      title={`Viewer position: ${getPositionText()}`}
+                    >
+                      <span className="font-medium">{getPositionIcon()}</span>
+                      {getPositionText()}
+                    </Badge>
                   )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-2" align="center">
-                <div className="grid grid-cols-4 gap-1">
-                  {quickReactions.map((emoji) => (
+                </div>
+              )}
+
+              {/* Own message header */}
+              {isOwnMessage && isFirstInGroup && getPositionText() && (
+                <div className="flex items-center justify-end gap-2 mb-2">
+                  <Badge
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0 h-auto border-blue-500 text-blue-700 flex items-center gap-1"
+                    title={`Your position: ${getPositionText()}`}
+                  >
+                    <span className="font-medium">{getPositionIcon()}</span>
+                    {getPositionText()}
+                  </Badge>
+                  <span className="text-xs opacity-70">
+                    {messageTime.timeOnly}
+                  </span>
+                </div>
+              )}
+
+              {/* Message text */}
+              <div
+                className={clsx(
+                  "text-sm leading-relaxed whitespace-pre-wrap break-words",
+                  isBlurred && "blur-sm"
+                )}
+              >
+                {message.message_text}
+              </div>
+
+              {/* Reactions */}
+              {reactionArray.length > 0 && (
+                <div className="flex gap-1 mt-2 flex-wrap">
+                  {reactionArray.map((reaction) => (
                     <Button
-                      key={emoji}
+                      key={reaction.emoji}
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 hover:bg-muted text-base"
-                      onClick={() => handleReact(emoji)}
-                      disabled={reactingWith === emoji}
+                      className={clsx(
+                        "h-6 px-2 text-xs rounded-full border border-border/50 hover:border-border",
+                        isOwnMessage
+                          ? "bg-primary-foreground/10 hover:bg-primary-foreground/20 text-primary-foreground"
+                          : "bg-background/70 hover:bg-background"
+                      )}
+                      onClick={() => handleReact(reaction.emoji)}
+                      title={`${reaction.users.join(", ")} reacted with ${reaction.emoji}`}
                     >
-                      {emoji}
+                      {reaction.emoji} {reaction.count}
                     </Button>
                   ))}
                 </div>
-              </PopoverContent>
-            </Popover>
-
-            {/* Reply button */}
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
-              onClick={handleReplyClick}
-            >
-              <Reply className="h-4 w-4" />
-            </Button>
-
-            {/* More options */}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-32 p-1" align="center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="w-full justify-start text-xs"
-                  onClick={handleReplyClick}
-                >
-                  <Reply className="h-3 w-3 mr-2" />
-                  Reply
-                </Button>
-              </PopoverContent>
-            </Popover>
+              )}
+            </div>
           </div>
-        )}
+
+          {/* Floating action buttons */}
+          {showActions && !isBlurred && !isMobile && (
+            <div
+              className={clsx(
+                "absolute top-0 flex items-center gap-1 z-20 transition-opacity",
+                isOwnMessage ? "-left-20 opacity-100" : "-right-20 opacity-100"
+              )}
+              onClick={(e) => e.stopPropagation()} // Prevent closing when clicking actions
+            >
+              {/* Emoji picker */}
+              <Popover open={emojiPickerOpen} onOpenChange={setEmojiPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
+                  >
+                    {reactingWith ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <SmilePlus className="h-4 w-4" />
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-2" align="center">
+                  <div className="grid grid-cols-4 gap-1">
+                    {quickReactions.map((emoji) => (
+                      <Button
+                        key={emoji}
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-muted text-base"
+                        onClick={() => handleReact(emoji)}
+                        disabled={reactingWith === emoji}
+                      >
+                        {emoji}
+                      </Button>
+                    ))}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {/* Reply button */}
+              <Button
+                variant="secondary"
+                size="sm"
+                className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
+                onClick={handleReplyClick}
+              >
+                <Reply className="h-4 w-4" />
+              </Button>
+
+              {/* More options */}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-8 w-8 p-0 rounded-full shadow-md border bg-background hover:bg-muted"
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-32 p-1" align="center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-xs"
+                    onClick={handleReplyClick}
+                  >
+                    <Reply className="h-3 w-3 mr-2" />
+                    Reply
+                  </Button>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Spoiler Confirmation Modal */}
+      <SpoilerConfirmationModal
+        open={showSpoilerModal}
+        onOpenChange={setShowSpoilerModal}
+        onConfirm={handleSpoilerConfirm}
+        spoilerText={getSpoilerPositionText()}
+        room={room}
+      />
+    </>
   );
 }
 

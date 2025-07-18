@@ -8,6 +8,7 @@ import {
   CreateRoomData,
   IRoom,
   RoomParticipant,
+  UpdateRoomPayload,
 } from "@/interfaces/room.interface";
 import { fetchDetailedContent } from "../tmdb";
 
@@ -431,245 +432,245 @@ export async function createRoom(
 
 // Updated fetchRoomByCode - remove starting_season/starting_episode from room data
 
-export async function fetchRoomByCode(
-  roomCode: string,
-  options: {
-    requireParticipation?: boolean;
-    includeParticipantStatus?: boolean;
-    allowUnauthenticatedPublic?: boolean;
-  } = {}
-): Promise<{
-  success: boolean;
-  data?: {
-    room: IRoom;
-    userStatus?: "not_member" | "pending" | "joined" | "left";
-    participantId?: string;
-    isAuthenticated?: boolean;
-  };
-  error?: string;
-  requiresAuth?: boolean;
-}> {
-  try {
-    const supabase = await createClient();
-    const {
-      requireParticipation = true,
-      includeParticipantStatus = false,
-      allowUnauthenticatedPublic = false,
-    } = options;
+// export async function fetchRoomByCode(
+//   roomCode: string,
+//   options: {
+//     requireParticipation?: boolean;
+//     includeParticipantStatus?: boolean;
+//     allowUnauthenticatedPublic?: boolean;
+//   } = {}
+// ): Promise<{
+//   success: boolean;
+//   data?: {
+//     room: IRoom;
+//     userStatus?: "not_member" | "pending" | "joined" | "left";
+//     participantId?: string;
+//     isAuthenticated?: boolean;
+//   };
+//   error?: string;
+//   requiresAuth?: boolean;
+// }> {
+//   try {
+//     const supabase = await createClient();
+//     const {
+//       requireParticipation = true,
+//       includeParticipantStatus = false,
+//       allowUnauthenticatedPublic = false,
+//     } = options;
 
-    // Get current user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+//     // Get current user
+//     const {
+//       data: { user },
+//     } = await supabase.auth.getUser();
 
-    // If no user and we don't allow unauthenticated access, return auth required
-    if (!user && !allowUnauthenticatedPublic) {
-      return {
-        success: false,
-        error: "Authentication required",
-        requiresAuth: true,
-      };
-    }
+//     // If no user and we don't allow unauthenticated access, return auth required
+//     if (!user && !allowUnauthenticatedPublic) {
+//       return {
+//         success: false,
+//         error: "Authentication required",
+//         requiresAuth: true,
+//       };
+//     }
 
-    // Get room data - REMOVED starting_season and starting_episode
-    const { data: roomData, error: roomError } = await supabase
-      .from("rooms")
-      .select(
-        `
-        id,
-        room_code,
-        title,
-        content_tmdb_id,
-        content_type,
-        streaming_platform,
-        privacy_level,
-        spoiler_policy,
-        creator_id,
-        status,
-        is_permanent,
-        member_count,
-        created_at,
-        last_activity,
-        content_cache!rooms_content_cache_fkey (
-          id,
-          tmdb_id,
-          content_type,
-          title,
-          overview,
-          poster_path,
-          backdrop_path,
-          runtime,
-          number_of_seasons,
-          number_of_episodes,
-          seasons,
-          genres,
-          release_date,
-          first_air_date,
-          cached_at,
-          last_accessed
-        )
-      `
-      )
-      .eq("room_code", roomCode)
-      .single();
+//     // Get room data - REMOVED starting_season and starting_episode
+//     const { data: roomData, error: roomError } = await supabase
+//       .from("rooms")
+//       .select(
+//         `
+//         id,
+//         room_code,
+//         title,
+//         content_tmdb_id,
+//         content_type,
+//         streaming_platform,
+//         privacy_level,
+//         spoiler_policy,
+//         creator_id,
+//         status,
+//         is_permanent,
+//         member_count,
+//         created_at,
+//         last_activity,
+//         content_cache!rooms_content_cache_fkey (
+//           id,
+//           tmdb_id,
+//           content_type,
+//           title,
+//           overview,
+//           poster_path,
+//           backdrop_path,
+//           runtime,
+//           number_of_seasons,
+//           number_of_episodes,
+//           seasons,
+//           genres,
+//           release_date,
+//           first_air_date,
+//           cached_at,
+//           last_accessed
+//         )
+//       `
+//       )
+//       .eq("room_code", roomCode)
+//       .single();
 
-    if (roomError || !roomData) {
-      if (!user) {
-        return {
-          success: false,
-          error: "Authentication required",
-          requiresAuth: true,
-        };
-      }
+//     if (roomError || !roomData) {
+//       if (!user) {
+//         return {
+//           success: false,
+//           error: "Authentication required",
+//           requiresAuth: true,
+//         };
+//       }
 
-      return {
-        success: false,
-        error: "Room not found",
-      };
-    }
+//       return {
+//         success: false,
+//         error: "Room not found",
+//       };
+//     }
 
-    // If no user but room is private, require auth
-    if (!user && roomData.privacy_level === "private") {
-      return {
-        success: false,
-        error: "Authentication required",
-        requiresAuth: true,
-      };
-    }
+//     // If no user but room is private, require auth
+//     if (!user && roomData.privacy_level === "private") {
+//       return {
+//         success: false,
+//         error: "Authentication required",
+//         requiresAuth: true,
+//       };
+//     }
 
-    let userStatus: "not_member" | "pending" | "joined" | "left" = "not_member";
-    let participantId: string | undefined;
-    let participantData: any = null;
+//     let userStatus: "not_member" | "pending" | "joined" | "left" = "not_member";
+//     let participantId: string | undefined;
+//     let participantData: any = null;
 
-    // Only check participation if user is authenticated
-    if (user) {
-      const { data: fetchedParticipantData } = await supabase
-        .from("room_participants")
-        .select("id, status, role, joined_at")
-        .eq("room_id", roomData.id)
-        .eq("user_id", user.id)
-        .single();
+//     // Only check participation if user is authenticated
+//     if (user) {
+//       const { data: fetchedParticipantData } = await supabase
+//         .from("room_participants")
+//         .select("id, status, role, joined_at")
+//         .eq("room_id", roomData.id)
+//         .eq("user_id", user.id)
+//         .single();
 
-      participantData = fetchedParticipantData;
+//       participantData = fetchedParticipantData;
 
-      if (participantData) {
-        userStatus = participantData.status as "pending" | "joined" | "left";
-        participantId = participantData.id;
-      }
+//       if (participantData) {
+//         userStatus = participantData.status as "pending" | "joined" | "left";
+//         participantId = participantData.id;
+//       }
 
-      // Check access requirements
-      if (requireParticipation) {
-        const isCreator = roomData.creator_id === user.id;
-        const isJoinedParticipant =
-          participantData && participantData.status === "joined";
+//       // Check access requirements
+//       if (requireParticipation) {
+//         const isCreator = roomData.creator_id === user.id;
+//         const isJoinedParticipant =
+//           participantData && participantData.status === "joined";
 
-        if (!isCreator && !isJoinedParticipant) {
-          if (includeParticipantStatus) {
-            // Don't return error, just include status for access control logic
-          } else {
-            return {
-              success: false,
-              error: "You are not a member of this room",
-            };
-          }
-        }
-      }
-    }
+//         if (!isCreator && !isJoinedParticipant) {
+//           if (includeParticipantStatus) {
+//             // Don't return error, just include status for access control logic
+//           } else {
+//             return {
+//               success: false,
+//               error: "You are not a member of this room",
+//             };
+//           }
+//         }
+//       }
+//     }
 
-    // Transform room data - REMOVED season_number and episode_number from room
-    const cachedContent = roomData.content_cache as any;
-    const room: IRoom = {
-      id: roomData.id,
-      room_code: roomData.room_code,
-      title: roomData.title,
-      content_tmdb_id: roomData.content_tmdb_id,
-      content: cachedContent
-        ? {
-            id: cachedContent.id,
-            tmdb_id: cachedContent.tmdb_id,
-            content_type: cachedContent.content_type,
-            title: cachedContent.title,
-            overview: cachedContent.overview,
-            poster_path: cachedContent.poster_path,
-            backdrop_path: cachedContent.backdrop_path,
-            runtime: cachedContent.runtime,
-            number_of_seasons: cachedContent.number_of_seasons,
-            number_of_episodes: cachedContent.number_of_episodes,
-            seasons: cachedContent.seasons || [], // Include seasons for position selector
-            genres: cachedContent.genres || [],
-            release_date: cachedContent.release_date,
-            first_air_date: cachedContent.first_air_date,
-            platforms: [],
-            cached_at: cachedContent.cached_at,
-            last_accessed: cachedContent.last_accessed,
-          }
-        : {
-            id: `${roomData.content_tmdb_id}`,
-            tmdb_id: roomData.content_tmdb_id,
-            content_type: roomData.content_type,
-            title: roomData.title,
-            poster_path: "",
-            backdrop_path: "",
-            seasons: [],
-            genres: [],
-            cached_at: new Date().toISOString(),
-            last_accessed: new Date().toISOString(),
-          },
-      streaming_platform: roomData.streaming_platform,
-      privacy_level: roomData.privacy_level,
-      spoiler_policy: roomData.spoiler_policy,
-      // REMOVED: season_number and episode_number are no longer on room
-      creator_id: roomData.creator_id,
-      status: roomData.status,
-      is_permanent: roomData.is_permanent,
-      member_count: roomData.member_count,
-      created_at: roomData.created_at,
-      last_activity: roomData.last_activity,
-      unread_count: 0,
-      creator: {
-        id: roomData.creator_id,
-        username: "User",
-        display_name: "User",
-      },
-      invitation_status:
-        user && participantData?.status === "pending"
-          ? "pending"
-          : user && participantData?.status === "joined"
-            ? "accepted"
-            : undefined,
-      invited_at:
-        user && participantData?.status === "pending"
-          ? participantData.joined_at
-          : undefined,
-    };
+//     // Transform room data - REMOVED season_number and episode_number from room
+//     const cachedContent = roomData.content_cache as any;
+//     const room: IRoom = {
+//       id: roomData.id,
+//       room_code: roomData.room_code,
+//       title: roomData.title,
+//       content_tmdb_id: roomData.content_tmdb_id,
+//       content: cachedContent
+//         ? {
+//             id: cachedContent.id,
+//             tmdb_id: cachedContent.tmdb_id,
+//             content_type: cachedContent.content_type,
+//             title: cachedContent.title,
+//             overview: cachedContent.overview,
+//             poster_path: cachedContent.poster_path,
+//             backdrop_path: cachedContent.backdrop_path,
+//             runtime: cachedContent.runtime,
+//             number_of_seasons: cachedContent.number_of_seasons,
+//             number_of_episodes: cachedContent.number_of_episodes,
+//             seasons: cachedContent.seasons || [], // Include seasons for position selector
+//             genres: cachedContent.genres || [],
+//             release_date: cachedContent.release_date,
+//             first_air_date: cachedContent.first_air_date,
+//             platforms: [],
+//             cached_at: cachedContent.cached_at,
+//             last_accessed: cachedContent.last_accessed,
+//           }
+//         : {
+//             id: `${roomData.content_tmdb_id}`,
+//             tmdb_id: roomData.content_tmdb_id,
+//             content_type: roomData.content_type,
+//             title: roomData.title,
+//             poster_path: "",
+//             backdrop_path: "",
+//             seasons: [],
+//             genres: [],
+//             cached_at: new Date().toISOString(),
+//             last_accessed: new Date().toISOString(),
+//           },
+//       streaming_platform: roomData.streaming_platform,
+//       privacy_level: roomData.privacy_level,
+//       spoiler_policy: roomData.spoiler_policy,
+//       // REMOVED: season_number and episode_number are no longer on room
+//       creator_id: roomData.creator_id,
+//       status: roomData.status,
+//       is_permanent: roomData.is_permanent,
+//       member_count: roomData.member_count,
+//       created_at: roomData.created_at,
+//       last_activity: roomData.last_activity,
+//       unread_count: 0,
+//       creator: {
+//         id: roomData.creator_id,
+//         username: "User",
+//         display_name: "User",
+//       },
+//       invitation_status:
+//         user && participantData?.status === "pending"
+//           ? "pending"
+//           : user && participantData?.status === "joined"
+//             ? "accepted"
+//             : undefined,
+//       invited_at:
+//         user && participantData?.status === "pending"
+//           ? participantData.joined_at
+//           : undefined,
+//     };
 
-    const result: {
-      room: IRoom;
-      userStatus?: "not_member" | "pending" | "joined" | "left";
-      participantId?: string;
-      isAuthenticated?: boolean;
-    } = {
-      room,
-      isAuthenticated: !!user,
-    };
+//     const result: {
+//       room: IRoom;
+//       userStatus?: "not_member" | "pending" | "joined" | "left";
+//       participantId?: string;
+//       isAuthenticated?: boolean;
+//     } = {
+//       room,
+//       isAuthenticated: !!user,
+//     };
 
-    if (includeParticipantStatus) {
-      result.userStatus = userStatus;
-      result.participantId = participantId;
-    }
+//     if (includeParticipantStatus) {
+//       result.userStatus = userStatus;
+//       result.participantId = participantId;
+//     }
 
-    return {
-      success: true,
-      data: result,
-    };
-  } catch (error) {
-    console.error("Error in fetchRoomByCode:", error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : "Failed to fetch room",
-    };
-  }
-}
+//     return {
+//       success: true,
+//       data: result,
+//     };
+//   } catch (error) {
+//     console.error("Error in fetchRoomByCode:", error);
+//     return {
+//       success: false,
+//       error: error instanceof Error ? error.message : "Failed to fetch room",
+//     };
+//   }
+// }
 
 export async function checkUserRoomAccess(roomCode: string): Promise<{
   success: boolean;
@@ -1121,69 +1122,69 @@ export async function joinRoomByCode(roomCodeOrLink: string): Promise<{
   }
 }
 
-export async function updateContentCacheWithDetailsIfNeeded(
-  tmdbId: number,
-  contentType: "movie" | "series"
-): Promise<{
-  success: boolean;
-  error?: string;
-  wasUpdated?: boolean;
-  detailedContent?: any;
-}> {
-  try {
-    const supabase = await createClient();
+// export async function updateContentCacheWithDetailsIfNeeded(
+//   tmdbId: number,
+//   contentType: "movie" | "series"
+// ): Promise<{
+//   success: boolean;
+//   error?: string;
+//   wasUpdated?: boolean;
+//   detailedContent?: any;
+// }> {
+//   try {
+//     const supabase = await createClient();
 
-    // Check if we already have detailed data
-    const { data: existingContent } = await supabase
-      .from("content_cache")
-      .select("seasons, detailed_fetched_at")
-      .eq("tmdb_id", tmdbId)
-      .eq("content_type", contentType)
-      .single();
+//     // Check if we already have detailed data
+//     const { data: existingContent } = await supabase
+//       .from("content_cache")
+//       .select("seasons, detailed_fetched_at")
+//       .eq("tmdb_id", tmdbId)
+//       .eq("content_type", contentType)
+//       .single();
 
-    // Skip if we already have detailed data
-    const hasDetailedData =
-      contentType === "series"
-        ? existingContent?.seasons && existingContent.seasons.length > 0
-        : existingContent?.detailed_fetched_at;
+//     // Skip if we already have detailed data
+//     const hasDetailedData =
+//       contentType === "series"
+//         ? existingContent?.seasons && existingContent.seasons.length > 0
+//         : existingContent?.detailed_fetched_at;
 
-    if (hasDetailedData) {
-      return {
-        success: true,
-        wasUpdated: false,
-        detailedContent: { seasons: existingContent?.seasons },
-      };
-    }
+//     if (hasDetailedData) {
+//       return {
+//         success: true,
+//         wasUpdated: false,
+//         detailedContent: { seasons: existingContent?.seasons },
+//       };
+//     }
 
-    // Fetch detailed content from TMDB
-    const detailedContent = await fetchDetailedContent(tmdbId, contentType);
+//     // Fetch detailed content from TMDB
+//     const detailedContent = await fetchDetailedContent(tmdbId, contentType);
 
-    console.log({ heatyyyyyy: detailedContent.seasons });
+//     console.log({ heatyyyyyy: detailedContent.seasons });
 
-    // Update the content_cache record
-    const { error: updateError } = await supabase
-      .from("content_cache")
-      .update({
-        seasons: detailedContent.seasons || [],
-        number_of_seasons: detailedContent.number_of_seasons,
-        number_of_episodes: detailedContent.number_of_episodes,
-        detailed_fetched_at: new Date().toISOString(),
-        last_accessed: new Date().toISOString(),
-      })
-      .eq("tmdb_id", tmdbId)
-      .eq("content_type", contentType);
+//     // Update the content_cache record
+//     const { error: updateError } = await supabase
+//       .from("content_cache")
+//       .update({
+//         seasons: detailedContent.seasons || [],
+//         number_of_seasons: detailedContent.number_of_seasons,
+//         number_of_episodes: detailedContent.number_of_episodes,
+//         detailed_fetched_at: new Date().toISOString(),
+//         last_accessed: new Date().toISOString(),
+//       })
+//       .eq("tmdb_id", tmdbId)
+//       .eq("content_type", contentType);
 
-    if (updateError) {
-      console.error("Error updating content cache:", updateError);
-      return { success: false, error: "Failed to update content cache" };
-    }
+//     if (updateError) {
+//       console.error("Error updating content cache:", updateError);
+//       return { success: false, error: "Failed to update content cache" };
+//     }
 
-    return { success: true, wasUpdated: true, detailedContent };
-  } catch (error) {
-    console.error("Error in updateContentCacheWithDetailsIfNeeded:", error);
-    return { success: false, error: "Failed to fetch detailed content" };
-  }
-}
+//     return { success: true, wasUpdated: true, detailedContent };
+//   } catch (error) {
+//     console.error("Error in updateContentCacheWithDetailsIfNeeded:", error);
+//     return { success: false, error: "Failed to fetch detailed content" };
+//   }
+// }
 
 // Add this to your room actions file
 
@@ -1281,5 +1282,485 @@ export async function getCurrentUserPosition(roomId: string): Promise<{
   } catch (error) {
     console.error("Error in getCurrentUserPosition:", error);
     return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export interface FetchRoomsParams {
+  filter?: RoomFilter;
+  sort?: RoomSort;
+  direction?: SortDirection;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+// Leave room functionality
+export async function leaveRoom(roomId: string): Promise<{
+  success: boolean;
+  error?: string;
+  message?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "You must be logged in to leave a room" };
+    }
+
+    // Check if room exists and user is participant
+    const { data: roomData, error: roomError } = await supabase
+      .from("rooms")
+      .select("id, title, creator_id")
+      .eq("id", roomId)
+      .single();
+
+    if (roomError || !roomData) {
+      return { success: false, error: "Room not found" };
+    }
+
+    // Don't allow creator to leave room
+    if (roomData.creator_id === user.id) {
+      return {
+        success: false,
+        error: "Room creators cannot leave their rooms",
+      };
+    }
+
+    // Check if user is a participant
+    const { data: participantData, error: participantError } = await supabase
+      .from("room_participants")
+      .select("id, status")
+      .eq("room_id", roomId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (participantError || !participantData) {
+      return { success: false, error: "You are not a member of this room" };
+    }
+
+    if (participantData.status === "left") {
+      return { success: false, error: "You have already left this room" };
+    }
+
+    // Update participant status to "left"
+    const { error: updateError } = await supabase
+      .from("room_participants")
+      .update({
+        status: "left",
+        last_seen: new Date().toISOString(),
+      })
+      .eq("id", participantData.id);
+
+    if (updateError) {
+      console.error("Error updating participant status:", updateError);
+      return { success: false, error: "Failed to leave room" };
+    }
+
+    // Update room member count
+    const { error: countError } = await supabase.rpc(
+      "decrement_room_member_count",
+      {
+        room_id: roomId,
+      }
+    );
+
+    if (countError) {
+      console.error("Error updating member count:", countError);
+      // Don't fail the operation for this
+    }
+
+    // Revalidate relevant paths
+    revalidatePath("/dashboard");
+    revalidatePath("/rooms");
+
+    return {
+      success: true,
+      message: `You have left "${roomData.title}" successfully`,
+    };
+  } catch (error) {
+    console.error("Error in leaveRoom:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// Update room settings (for creators only)
+export async function updateRoomSettings(
+  roomId: string,
+  updates: UpdateRoomPayload
+): Promise<{
+  success: boolean;
+  error?: string;
+  message?: string;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "You must be logged in" };
+    }
+
+    // Check if room exists and user is creator
+    const { data: roomData, error: roomError } = await supabase
+      .from("rooms")
+      .select("id, title, creator_id")
+      .eq("id", roomId)
+      .single();
+
+    if (roomError || !roomData) {
+      return { success: false, error: "Room not found" };
+    }
+
+    if (roomData.creator_id !== user.id) {
+      return {
+        success: false,
+        error: "Only room creators can update settings",
+      };
+    }
+
+    // Update room settings
+    const { error: updateError } = await supabase
+      .from("rooms")
+      .update({
+        ...updates,
+        last_activity: new Date().toISOString(),
+      })
+      .eq("id", roomId);
+
+    if (updateError) {
+      console.error("Error updating room settings:", updateError);
+      return { success: false, error: "Failed to update room settings" };
+    }
+
+    // Revalidate relevant paths
+    revalidatePath("/dashboard");
+    revalidatePath("/rooms");
+
+    return {
+      success: true,
+      message: "Room settings updated successfully",
+    };
+  } catch (error) {
+    console.error("Error in updateRoomSettings:", error);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// Enhanced content cache update to include homepage
+export async function updateContentCacheWithDetailsIfNeeded(
+  tmdbId: number,
+  contentType: "movie" | "series"
+): Promise<{
+  success: boolean;
+  error?: string;
+  wasUpdated?: boolean;
+  detailedContent?: any;
+}> {
+  try {
+    const supabase = await createClient();
+
+    // Check if we already have detailed data
+    const { data: existingContent } = await supabase
+      .from("content_cache")
+      .select("seasons, homepage, detailed_fetched_at")
+      .eq("tmdb_id", tmdbId)
+      .eq("content_type", contentType)
+      .single();
+
+    // Skip if we already have detailed data
+    const hasDetailedData =
+      contentType === "series"
+        ? existingContent?.seasons && existingContent.seasons.length > 0
+        : existingContent?.detailed_fetched_at;
+
+    if (hasDetailedData && existingContent?.homepage) {
+      return {
+        success: true,
+        wasUpdated: false,
+        detailedContent: {
+          seasons: existingContent?.seasons,
+          homepage: existingContent?.homepage,
+        },
+      };
+    }
+
+    // Fetch detailed content from TMDB
+    const detailedContent = await fetchDetailedContent(tmdbId, contentType);
+
+    // Update the content_cache record with homepage
+    const { error: updateError } = await supabase
+      .from("content_cache")
+      .update({
+        seasons: detailedContent.seasons || [],
+        number_of_seasons: detailedContent.number_of_seasons,
+        number_of_episodes: detailedContent.number_of_episodes,
+        homepage: detailedContent.homepage || null,
+        detailed_fetched_at: new Date().toISOString(),
+        last_accessed: new Date().toISOString(),
+      })
+      .eq("tmdb_id", tmdbId)
+      .eq("content_type", contentType);
+
+    if (updateError) {
+      console.error("Error updating content cache:", updateError);
+      return { success: false, error: "Failed to update content cache" };
+    }
+
+    return { success: true, wasUpdated: true, detailedContent };
+  } catch (error) {
+    console.error("Error in updateContentCacheWithDetailsIfNeeded:", error);
+    return { success: false, error: "Failed to fetch detailed content" };
+  }
+}
+
+// Update existing fetchRoomByCode to include homepage
+export async function fetchRoomByCode(
+  roomCode: string,
+  options: {
+    requireParticipation?: boolean;
+    includeParticipantStatus?: boolean;
+    allowUnauthenticatedPublic?: boolean;
+  } = {}
+): Promise<{
+  success: boolean;
+  data?: {
+    room: IRoom;
+    userStatus?: "not_member" | "pending" | "joined" | "left";
+    participantId?: string;
+    isAuthenticated?: boolean;
+  };
+  error?: string;
+  requiresAuth?: boolean;
+}> {
+  try {
+    const supabase = await createClient();
+    const {
+      requireParticipation = true,
+      includeParticipantStatus = false,
+      allowUnauthenticatedPublic = false,
+    } = options;
+
+    // Get current user
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    // If no user and we don't allow unauthenticated access, return auth required
+    if (!user && !allowUnauthenticatedPublic) {
+      return {
+        success: false,
+        error: "Authentication required",
+        requiresAuth: true,
+      };
+    }
+
+    // Get room data - NOW INCLUDING HOMEPAGE
+    const { data: roomData, error: roomError } = await supabase
+      .from("rooms")
+      .select(
+        `
+        id,
+        room_code,
+        title,
+        content_tmdb_id,
+        content_type,
+        streaming_platform,
+        privacy_level,
+        spoiler_policy,
+        creator_id,
+        status,
+        is_permanent,
+        member_count,
+        created_at,
+        last_activity,
+        content_cache!rooms_content_cache_fkey (
+          id,
+          tmdb_id,
+          content_type,
+          title,
+          overview,
+          poster_path,
+          backdrop_path,
+          runtime,
+          number_of_seasons,
+          number_of_episodes,
+          seasons,
+          genres,
+          release_date,
+          first_air_date,
+          homepage,
+          cached_at,
+          last_accessed
+        )
+      `
+      )
+      .eq("room_code", roomCode)
+      .single();
+
+    if (roomError || !roomData) {
+      if (!user) {
+        return {
+          success: false,
+          error: "Authentication required",
+          requiresAuth: true,
+        };
+      }
+
+      return {
+        success: false,
+        error: "Room not found",
+      };
+    }
+
+    // If no user but room is private, require auth
+    if (!user && roomData.privacy_level === "private") {
+      return {
+        success: false,
+        error: "Authentication required",
+        requiresAuth: true,
+      };
+    }
+
+    let userStatus: "not_member" | "pending" | "joined" | "left" = "not_member";
+    let participantId: string | undefined;
+    let participantData: any = null;
+
+    // Only check participation if user is authenticated
+    if (user) {
+      const { data: fetchedParticipantData } = await supabase
+        .from("room_participants")
+        .select("id, status, role, joined_at")
+        .eq("room_id", roomData.id)
+        .eq("user_id", user.id)
+        .single();
+
+      participantData = fetchedParticipantData;
+
+      if (participantData) {
+        userStatus = participantData.status as "pending" | "joined" | "left";
+        participantId = participantData.id;
+      }
+
+      // Check access requirements
+      if (requireParticipation) {
+        const isCreator = roomData.creator_id === user.id;
+        const isJoinedParticipant =
+          participantData && participantData.status === "joined";
+
+        if (!isCreator && !isJoinedParticipant) {
+          if (includeParticipantStatus) {
+            // Don't return error, just include status for access control logic
+          } else {
+            return {
+              success: false,
+              error: "You are not a member of this room",
+            };
+          }
+        }
+      }
+    }
+
+    // Transform room data - NOW INCLUDING HOMEPAGE
+    const cachedContent = roomData.content_cache as any;
+    const room: IRoom = {
+      id: roomData.id,
+      room_code: roomData.room_code,
+      title: roomData.title,
+      content_tmdb_id: roomData.content_tmdb_id,
+      content: cachedContent
+        ? {
+            id: cachedContent.id,
+            tmdb_id: cachedContent.tmdb_id,
+            content_type: cachedContent.content_type,
+            title: cachedContent.title,
+            overview: cachedContent.overview,
+            poster_path: cachedContent.poster_path,
+            backdrop_path: cachedContent.backdrop_path,
+            runtime: cachedContent.runtime,
+            number_of_seasons: cachedContent.number_of_seasons,
+            number_of_episodes: cachedContent.number_of_episodes,
+            seasons: cachedContent.seasons || [],
+            genres: cachedContent.genres || [],
+            release_date: cachedContent.release_date,
+            first_air_date: cachedContent.first_air_date,
+            homepage: cachedContent.homepage || null, // Include homepage
+            platforms: [],
+            cached_at: cachedContent.cached_at,
+            last_accessed: cachedContent.last_accessed,
+          }
+        : {
+            id: `${roomData.content_tmdb_id}`,
+            tmdb_id: roomData.content_tmdb_id,
+            content_type: roomData.content_type,
+            title: roomData.title,
+            poster_path: "",
+            backdrop_path: "",
+            seasons: [],
+            genres: [],
+            homepage: null,
+            cached_at: new Date().toISOString(),
+            last_accessed: new Date().toISOString(),
+          },
+      streaming_platform: roomData.streaming_platform,
+      privacy_level: roomData.privacy_level,
+      spoiler_policy: roomData.spoiler_policy,
+      creator_id: roomData.creator_id,
+      status: roomData.status,
+      is_permanent: roomData.is_permanent,
+      member_count: roomData.member_count,
+      created_at: roomData.created_at,
+      last_activity: roomData.last_activity,
+      unread_count: 0,
+      creator: {
+        id: roomData.creator_id,
+        username: "User",
+        display_name: "User",
+      },
+      invitation_status:
+        user && participantData?.status === "pending"
+          ? "pending"
+          : user && participantData?.status === "joined"
+            ? "accepted"
+            : undefined,
+      invited_at:
+        user && participantData?.status === "pending"
+          ? participantData.joined_at
+          : undefined,
+    };
+
+    const result: {
+      room: IRoom;
+      userStatus?: "not_member" | "pending" | "joined" | "left";
+      participantId?: string;
+      isAuthenticated?: boolean;
+    } = {
+      room,
+      isAuthenticated: !!user,
+    };
+
+    if (includeParticipantStatus) {
+      result.userStatus = userStatus;
+      result.participantId = participantId;
+    }
+
+    return {
+      success: true,
+      data: result,
+    };
+  } catch (error) {
+    console.error("Error in fetchRoomByCode:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Failed to fetch room",
+    };
   }
 }
