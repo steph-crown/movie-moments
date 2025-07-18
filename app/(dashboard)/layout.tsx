@@ -1,16 +1,25 @@
+"use client";
+
 import { CreateRoomBtn } from "@/components/btns/create-room-btn";
 import { JoinRoomBtn } from "@/components/btns/join-room-btn";
+import { LoginBtn } from "@/components/btns/login-btn";
+import { ViewRoomBtn } from "@/components/btns/view-room-btn";
 import { Logo } from "@/components/logo";
+import { ProfileMenu } from "@/components/profile-menu";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { UserAvatar } from "@/components/user/user-avatar";
+import { useAuth } from "@/hooks/use-auth";
 import { MenuIcon } from "lucide-react";
 import Link from "next/link";
 import { ReactNode } from "react";
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+
   return (
     <section>
       <div className="w-full border-b border-solid border-border">
@@ -25,20 +34,33 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               >
                 Rooms
               </Link>
-
-              <Link
-                href={"/rooms"}
-                className="text-sm font-medium px-4 py-2 rounded-md"
-              >
-                Profile
-              </Link>
             </div>
           </div>
 
           <div className=" items-center gap-4 flex">
-            <CreateRoomBtn btnClassName="h-10" />
+            {user ? (
+              <>
+                <CreateRoomBtn btnClassName="h-10" />
 
-            <JoinRoomBtn btnClassName="h-10 hidden lg:flex" />
+                <JoinRoomBtn btnClassName="h-10 hidden lg:flex" />
+
+                <div className="hidden lg:flex">
+                  <ProfileMenu
+                    menuTrigger={
+                      <button>
+                        <UserAvatar />
+                      </button>
+                    }
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <LoginBtn btnClassName="h-10" />
+
+                <ViewRoomBtn btnClassName="h-10 hidden lg:flex" />
+              </>
+            )}
 
             <Popover>
               <PopoverTrigger className="flex lg:hidden">

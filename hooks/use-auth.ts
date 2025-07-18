@@ -1,12 +1,17 @@
 "use client";
 
+import { getCurrentUserProfile, UserProfile } from "@/lib/actions/auth";
 import { createClient } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
 
   useEffect(() => {
     const supabase = createClient();
@@ -28,5 +33,30 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  return { user, loading };
+  const loadUserProfile = useCallback(async () => {
+    setIsLoadingProfile(true);
+    try {
+      const result = await getCurrentUserProfile();
+      if (result.success && result.data) {
+        setUserProfile(result.data);
+      }
+    } catch (error) {
+      console.error("Error loading profile:", error);
+      toast.error("Failed to load profile");
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadUserProfile();
+  }, [loadUserProfile]);
+
+  return {
+    user,
+    loading,
+    userProfile,
+    isLoadingProfile,
+    loadUserProfile,
+  };
 }

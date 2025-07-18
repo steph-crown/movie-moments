@@ -27,11 +27,13 @@ import {
 } from "@/contexts/user-position-context";
 import { decodeSeasonData } from "@/lib/utils/season.utils";
 import { PositionSetupDialog } from "@/components/room/position-setup-dialog";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Page() {
   const params = useParams();
   const router = useRouter();
   const roomCode = params.room_code as string;
+  const { user } = useAuth();
 
   const [room, setRoom] = useState<IRoom | null>(null);
   const [userStatus, setUserStatus] = useState<
@@ -252,7 +254,8 @@ export default function Page() {
 
         <UserPositionProvider room={room}>
           <StalenessModalWrapper room={room} />
-          <MoviePosition room={room} />
+          {user && <MoviePosition room={room} />}
+
           <div className="flex-1 flex flex-col min-h-0">
             {/* Messages Area - only show when joined */}
             {isAuthenticated && userStatus === "joined" ? (

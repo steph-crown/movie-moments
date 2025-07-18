@@ -1,8 +1,15 @@
+"use client";
+
 import { Film, Popcorn } from "lucide-react";
 import { CreateRoomBtn } from "../btns/create-room-btn";
 import { JoinRoomBtn } from "../btns/join-room-btn";
+import { useAuth } from "@/hooks/use-auth";
+import { ViewRoomBtn } from "../btns/view-room-btn";
+import { LoginBtn } from "../btns/login-btn";
 
 export function EmptyRoomsState() {
+  const { user } = useAuth();
+
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
       {/* Beautiful Illustration */}
@@ -48,7 +55,8 @@ export function EmptyRoomsState() {
         <h2 className="text-2xl font-bold text-foreground mb-3">
           Start Your Movie Journey
         </h2>
-        <p className="text-muted-foreground leading-relaxed">
+
+        <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
           Create a room to watch movies with friends or join an existing room to
           jump into the conversation. Share reactions, discuss plot twists, and
           make movie nights social!
@@ -57,14 +65,27 @@ export function EmptyRoomsState() {
 
       {/* Action Buttons */}
       <div className="flex flex-col sm:flex-row gap-3 w-full max-w-sm">
-        <CreateRoomBtn btnClassName="sm:flex-1 h-11 font-medium" fullWidth />
+        {user ? (
+          <>
+            <CreateRoomBtn
+              btnClassName="sm:flex-1 h-11 font-medium"
+              fullWidth
+            />
 
-        <JoinRoomBtn btnClassName="sm:flex-1 h-11 font-medium" />
+            <JoinRoomBtn btnClassName="sm:flex-1 h-11 font-medium" />
+          </>
+        ) : (
+          <>
+            <LoginBtn btnClassName="sm:flex-1 h-11 font-medium" />
+
+            <ViewRoomBtn btnClassName="sm:flex-1 h-11 font-medium" />
+          </>
+        )}
       </div>
 
       {/* Additional hint */}
       <p className="text-xs text-muted-foreground mt-6 max-w-sm">
-        💡 Tip: Room codes are usually 6 characters long and shared by the room
+        💡 Tip: Room codes are usually 12 characters long and shared by the room
         creator
       </p>
     </div>

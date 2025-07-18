@@ -303,15 +303,10 @@ export function RoomInfo({ room }: { room: IRoom }) {
                       Privacy
                     </Label>
                     <div className="flex items-center gap-2 mt-1">
-                      {room.privacy_level === "private" ? (
+                      {room.privacy_level === "private" && (
                         <>
                           <Lock className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">Private room</span>
-                        </>
-                      ) : (
-                        <>
-                          <Globe className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">Public room</span>
                         </>
                       )}
                     </div>

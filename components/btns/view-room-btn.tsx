@@ -1,5 +1,6 @@
 "use client";
 
+import { InlineLoader } from "@/components/loaders/inline-loader";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,20 +12,18 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { InlineLoader } from "@/components/loaders/inline-loader";
-import { joinRoomByCode } from "@/lib/actions/rooms";
 import { Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export function JoinRoomBtn({ btnClassName }: { btnClassName?: string }) {
-  const [joinDialogOpen, setJoinDialogOpen] = useState(false);
+export function ViewRoomBtn({ btnClassName }: { btnClassName?: string }) {
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  const handleJoinRoom = async () => {
+  const handleViewRoom = async () => {
     if (!roomCodeInput.trim()) {
       toast.error("Please enter a room code or link");
       return;
@@ -32,30 +31,32 @@ export function JoinRoomBtn({ btnClassName }: { btnClassName?: string }) {
 
     setIsLoading(true);
 
-    try {
-      const result = await joinRoomByCode(roomCodeInput.trim());
+    router.push(`/${roomCodeInput.trim()}`);
 
-      if (result.success && result.data) {
-        toast.success(result.data.message);
-        setJoinDialogOpen(false);
-        setRoomCodeInput("");
+    // try {
+    //   const result = await joinRoomByCode(roomCodeInput.trim());
 
-        // Redirect to the room page
-        router.push(`/${result.data.roomCode}`);
-      } else {
-        toast.error(result.error || "Failed to join room");
-      }
-    } catch (error) {
-      console.error("Join room error:", error);
-      toast.error("An unexpected error occurred");
-    } finally {
-      setIsLoading(false);
-    }
+    //   if (result.success && result.data) {
+    //     toast.success(result.data.message);
+    //     setViewDialogOpen(false);
+    //     setRoomCodeInput("");
+
+    //     // Redirect to the room page
+    //     router.push(`/${result.data.roomCode}`);
+    //   } else {
+    //     toast.error(result.error || "Failed to join room");
+    //   }
+    // } catch (error) {
+    //   console.error("Join room error:", error);
+    //   toast.error("An unexpected error occurred");
+    // } finally {
+    //   setIsLoading(false);
+    // }
   };
 
   const handleDialogClose = (open: boolean) => {
     if (!isLoading) {
-      setJoinDialogOpen(open);
+      setViewDialogOpen(open);
       if (!open) {
         setRoomCodeInput("");
       }
@@ -80,18 +81,18 @@ export function JoinRoomBtn({ btnClassName }: { btnClassName?: string }) {
   };
 
   return (
-    <Dialog open={joinDialogOpen} onOpenChange={handleDialogClose}>
+    <Dialog open={viewDialogOpen} onOpenChange={handleDialogClose}>
       <DialogTrigger asChild>
         <Button variant="outline" className={btnClassName} size="lg">
           <Users className="w-4 h-4" />
-          Join Room
+          View Room
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Join a Room</DialogTitle>
+          <DialogTitle>View a Room</DialogTitle>
           <DialogDescription>
-            Enter a room code (e.g. abc-defg-hij) or paste a room link
+            Enter a room code (e.g. abc-defg-hij) or paste a room link.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -105,7 +106,7 @@ export function JoinRoomBtn({ btnClassName }: { btnClassName?: string }) {
                 setRoomCodeInput(formatRoomCodeInput(e.target.value))
               }
               onKeyDown={(e) =>
-                e.key === "Enter" && !isLoading && handleJoinRoom()
+                e.key === "Enter" && !isLoading && handleViewRoom()
               }
               disabled={isLoading}
               autoFocus
@@ -115,7 +116,8 @@ export function JoinRoomBtn({ btnClassName }: { btnClassName?: string }) {
               type="text"
             />
             <p className="text-xs text-muted-foreground">
-              💡 You can paste a room link or enter just the code
+              💡 Ask the creator of the room to share the code with you or login
+              to create your room
             </p>
           </div>
         </div>
@@ -129,12 +131,12 @@ export function JoinRoomBtn({ btnClassName }: { btnClassName?: string }) {
             Cancel
           </Button>
           <Button
-            onClick={handleJoinRoom}
+            onClick={handleViewRoom}
             className="flex-1"
             disabled={!roomCodeInput.trim() || isLoading}
           >
             {isLoading && <InlineLoader />}
-            {isLoading ? "Joining..." : "Join Room"}
+            {isLoading ? "Viewing..." : "View Room"}
           </Button>
         </div>
       </DialogContent>

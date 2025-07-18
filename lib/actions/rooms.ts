@@ -51,9 +51,17 @@ export async function fetchUserRooms({
     } = await supabase.auth.getUser();
 
     if (!user) {
+      // return {
+      //   success: false,
+      //   error: "You must be logged in to view rooms",
+      // };
       return {
-        success: false,
-        error: "You must be logged in to view rooms",
+        success: true,
+        data: {
+          rooms: [],
+          totalCount: 0,
+          hasMore: false,
+        },
       };
     }
 
