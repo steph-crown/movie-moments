@@ -430,4 +430,4 @@ export enum StreamingPlatformEnum {
 export type PrivacyLevel = "public" | "private";
 export type SpoilerPolicy = "hide_spoilers" | "show_all";
 export type ContentType = "movie" | "series";
-export type ParticipantStatus = "pending" | "joined" | "left"; // Added "left" status
+export type ParticipantStatus = "pending" | "joined" | "left" | "not_member"; // Added "left" status

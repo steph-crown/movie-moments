@@ -38,13 +38,18 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { useAuth } from "@/hooks/use-auth";
-import { IRoom, RoomParticipant } from "@/interfaces/room.interface";
+import {
+  IRoom,
+  ParticipantStatus,
+  RoomParticipant,
+} from "@/interfaces/room.interface";
 import {
   getRoomParticipants,
   leaveRoom,
   updateRoomSettings,
 } from "@/lib/actions/rooms";
 import { decodeSeasonData } from "@/lib/utils/season.utils";
+import { IconShare3 } from "@tabler/icons-react";
 import {
   AlertTriangle,
   Check,
@@ -64,7 +69,6 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { ShareBtn } from "../btns/share-btn";
-import { IconShare3 } from "@tabler/icons-react";
 
 interface RoomSettingsForm {
   title: string;
@@ -72,7 +76,13 @@ interface RoomSettingsForm {
   spoiler_policy: "hide_spoilers" | "show_all";
 }
 
-export function RoomInfo({ room }: { room: IRoom }) {
+export function RoomInfo({
+  room,
+  userStatus,
+}: {
+  room: IRoom;
+  userStatus?: ParticipantStatus;
+}) {
   const { user } = useAuth();
   const router = useRouter();
   const [linkCopied, setLinkCopied] = useState(false);
@@ -303,10 +313,15 @@ export function RoomInfo({ room }: { room: IRoom }) {
                       Privacy
                     </Label>
                     <div className="flex items-center gap-2 mt-1">
-                      {room.privacy_level === "private" && (
+                      {room.privacy_level === "private" ? (
                         <>
                           <Lock className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">Private room</span>
+                        </>
+                      ) : (
+                        <>
+                          <Globe className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">Public room</span>
                         </>
                       )}
                     </div>
@@ -358,207 +373,221 @@ export function RoomInfo({ room }: { room: IRoom }) {
 
             <Separator />
 
-            {/* Action Buttons */}
-            <div className="grid gap-3">
-              <div className="flex gap-2">
-                {/* Share Button */}
-                <ShareBtn
-                  room={room}
-                  triggerNode={
-                    <Button variant="outline" className="flex-1">
-                      <IconShare3 className="h-4 w-4 mr-2" />
-                      Share
+            {userStatus === "joined" ? (
+              <>
+                {/* Action Buttons */}
+                <div className="grid gap-3">
+                  <div className="flex gap-2">
+                    {/* Share Button */}
+                    <ShareBtn
+                      room={room}
+                      triggerNode={
+                        <Button variant="outline" className="flex-1">
+                          <IconShare3 className="h-4 w-4 mr-2" />
+                          Share
+                        </Button>
+                      }
+                    />
+
+                    {/* Settings Button (Creator Only) */}
+                    {isCreator && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowSettingsModal(true)}
+                        className="flex-1"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Settings
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Leave Room Button (Non-creators only) */}
+                  {!isCreator && (
+                    <Button
+                      variant="destructive"
+                      onClick={() => setShowLeaveModal(true)}
+                      className="w-full"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Leave Room
                     </Button>
-                  }
-                />
+                  )}
+                </div>
 
-                {/* Settings Button (Creator Only) */}
-                {isCreator && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowSettingsModal(true)}
-                    className="flex-1"
-                  >
-                    <Settings className="h-4 w-4 mr-2" />
-                    Settings
-                  </Button>
-                )}
-              </div>
+                <Separator />
 
-              {/* Leave Room Button (Non-creators only) */}
-              {!isCreator && (
-                <Button
-                  variant="destructive"
-                  onClick={() => setShowLeaveModal(true)}
-                  className="w-full"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Leave Room
-                </Button>
-              )}
-            </div>
+                {/* Share Link */}
+                <div className="grid gap-3">
+                  <Label className="text-sm font-medium">Share this room</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={roomLink}
+                      readOnly
+                      className="bg-muted text-sm"
+                    />
+                    <Button
+                      onClick={copyLink}
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 !h-full"
+                    >
+                      {linkCopied ? (
+                        <>
+                          <Check className="h-4 w-4 mr-1" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4 mr-1" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
 
-            <Separator />
+                <Separator />
 
-            {/* Share Link */}
-            <div className="grid gap-3">
-              <Label className="text-sm font-medium">Share this room</Label>
-              <div className="flex gap-2">
-                <Input value={roomLink} readOnly className="bg-muted text-sm" />
-                <Button
-                  onClick={copyLink}
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 !h-full"
-                >
-                  {linkCopied ? (
-                    <>
-                      <Check className="h-4 w-4 mr-1" />
-                      Copied!
-                    </>
+                {/* Members List */}
+                <div className="grid gap-4">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="text-lg font-semibold">
+                      Members ({participants.length})
+                    </h3>
+                    {isLoadingParticipants && (
+                      <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
+                    )}
+                  </div>
+
+                  {isLoadingParticipants ? (
+                    <div className="text-center py-4 text-muted-foreground">
+                      Loading members...
+                    </div>
                   ) : (
                     <>
-                      <Copy className="h-4 w-4 mr-1" />
-                      Copy
+                      {/* Joined Members */}
+                      {joinedParticipants.length > 0 && (
+                        <div className="grid gap-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 bg-green-500 rounded-full"></div>
+                            <Label className="text-sm font-medium text-muted-foreground">
+                              Members ({joinedParticipants.length})
+                            </Label>
+                          </div>
+                          <div className="grid gap-2">
+                            {joinedParticipants.map((participant) => (
+                              <div
+                                key={participant.id}
+                                className="flex items-center justify-between p-3 border rounded-lg"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-2">
+                                    <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
+                                      <span className="text-sm font-medium">
+                                        {getDisplayName(participant)
+                                          .charAt(0)
+                                          .toUpperCase()}
+                                      </span>
+                                    </div>
+                                    {participant.role === "creator" && (
+                                      <Crown className="h-4 w-4 text-yellow-500" />
+                                    )}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-medium">
+                                        {getDisplayName(participant)}
+                                      </span>
+                                      {participant.role === "creator" && (
+                                        <Badge
+                                          variant="secondary"
+                                          className="text-xs"
+                                        >
+                                          Creator
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {getUsername(participant) && (
+                                      <span className="text-xs text-muted-foreground">
+                                        @{getUsername(participant)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-xs font-mono text-muted-foreground">
+                                    {formatPosition(participant)}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pending Members */}
+                      {pendingParticipants.length > 0 && (
+                        <div className="grid gap-3">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
+                            <Label className="text-sm font-medium text-muted-foreground">
+                              Pending ({pendingParticipants.length})
+                            </Label>
+                          </div>
+                          <div className="grid gap-2">
+                            {pendingParticipants.map((participant) => (
+                              <div
+                                key={participant.id}
+                                className="flex items-center justify-between p-3 border border-dashed rounded-lg opacity-75"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                                    <span className="text-sm font-medium text-yellow-600">
+                                      {getDisplayName(participant)
+                                        .charAt(0)
+                                        .toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-sm font-medium">
+                                      {getDisplayName(participant)}
+                                    </span>
+                                    {getUsername(participant) && (
+                                      <div className="text-xs text-muted-foreground">
+                                        @{getUsername(participant)}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                                <Badge variant="outline" className="text-xs">
+                                  Invited
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Empty State */}
+                      {participants.length === 0 && !isLoadingParticipants && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>No members found</p>
+                        </div>
+                      )}
                     </>
                   )}
-                </Button>
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Members List */}
-            <div className="grid gap-4">
-              <div className="flex items-center gap-2">
-                <Users className="h-5 w-5 text-muted-foreground" />
-                <h3 className="text-lg font-semibold">
-                  Members ({participants.length})
-                </h3>
-                {isLoadingParticipants && (
-                  <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
-                )}
-              </div>
-
-              {isLoadingParticipants ? (
-                <div className="text-center py-4 text-muted-foreground">
-                  Loading members...
                 </div>
-              ) : (
-                <>
-                  {/* Joined Members */}
-                  {joinedParticipants.length > 0 && (
-                    <div className="grid gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                        <Label className="text-sm font-medium text-muted-foreground">
-                          Members ({joinedParticipants.length})
-                        </Label>
-                      </div>
-                      <div className="grid gap-2">
-                        {joinedParticipants.map((participant) => (
-                          <div
-                            key={participant.id}
-                            className="flex items-center justify-between p-3 border rounded-lg"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-2">
-                                <div className="h-8 w-8 bg-primary/10 rounded-full flex items-center justify-center">
-                                  <span className="text-sm font-medium">
-                                    {getDisplayName(participant)
-                                      .charAt(0)
-                                      .toUpperCase()}
-                                  </span>
-                                </div>
-                                {participant.role === "creator" && (
-                                  <Crown className="h-4 w-4 text-yellow-500" />
-                                )}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-medium">
-                                    {getDisplayName(participant)}
-                                  </span>
-                                  {participant.role === "creator" && (
-                                    <Badge
-                                      variant="secondary"
-                                      className="text-xs"
-                                    >
-                                      Creator
-                                    </Badge>
-                                  )}
-                                </div>
-                                {getUsername(participant) && (
-                                  <span className="text-xs text-muted-foreground">
-                                    @{getUsername(participant)}
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-xs font-mono text-muted-foreground">
-                                {formatPosition(participant)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Pending Members */}
-                  {pendingParticipants.length > 0 && (
-                    <div className="grid gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-2 bg-yellow-500 rounded-full"></div>
-                        <Label className="text-sm font-medium text-muted-foreground">
-                          Pending ({pendingParticipants.length})
-                        </Label>
-                      </div>
-                      <div className="grid gap-2">
-                        {pendingParticipants.map((participant) => (
-                          <div
-                            key={participant.id}
-                            className="flex items-center justify-between p-3 border border-dashed rounded-lg opacity-75"
-                          >
-                            <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                                <span className="text-sm font-medium text-yellow-600">
-                                  {getDisplayName(participant)
-                                    .charAt(0)
-                                    .toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <span className="text-sm font-medium">
-                                  {getDisplayName(participant)}
-                                </span>
-                                {getUsername(participant) && (
-                                  <div className="text-xs text-muted-foreground">
-                                    @{getUsername(participant)}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <Badge variant="outline" className="text-xs">
-                              Invited
-                            </Badge>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Empty State */}
-                  {participants.length === 0 && !isLoadingParticipants && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p>No members found</p>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+              </>
+            ) : (
+              <div>
+                <p className="text-sm font-medium text-center text-sidebar-ring">
+                  Join the room to see more details
+                </p>
+              </div>
+            )}
           </div>
         </SheetContent>
       </Sheet>

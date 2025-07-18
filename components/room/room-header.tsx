@@ -1,13 +1,19 @@
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { IRoom } from "@/interfaces/room.interface";
+import { IRoom, ParticipantStatus } from "@/interfaces/room.interface";
 import { Film, Lock, UsersRound } from "lucide-react";
 import { RoomInfo } from "../btns/room-info-btn";
 import { ShareBtn } from "../btns/share-btn";
 import { Badge } from "../ui/badge";
 
-export function RoomHeader({ room }: { room: IRoom }) {
+export function RoomHeader({
+  room,
+  userStatus,
+}: {
+  room: IRoom;
+  userStatus?: ParticipantStatus;
+}) {
   const isMobile = useIsMobile();
 
   return (
@@ -62,12 +68,14 @@ export function RoomHeader({ room }: { room: IRoom }) {
             <div className="flex items-center gap-2">
               {/* Mobile Info Button */}
               {isMobile ? (
-                <RoomInfo room={room} />
+                <RoomInfo room={room} userStatus={userStatus} />
               ) : (
                 /* Desktop Buttons */
                 <div className="hidden lg:flex items-center gap-2">
-                  {!!room && <ShareBtn room={room} />}
-                  {!!room && <RoomInfo room={room} />}
+                  {!!room && userStatus === "joined" && (
+                    <ShareBtn room={room} />
+                  )}
+                  {!!room && <RoomInfo room={room} userStatus={userStatus} />}
                 </div>
               )}
             </div>
