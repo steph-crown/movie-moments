@@ -354,7 +354,8 @@ export function RoomInfo({ room }: { room: IRoom }) {
                   variant="default"
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
-                  View on {room.streaming_platform}
+                  View{" "}
+                  {room.content.content_type === "movie" ? "Movie" : "Series"}
                 </Button>
               </div>
             )}

@@ -159,7 +159,7 @@ export function NavRooms() {
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
         <SidebarGroupLabel>Rooms</SidebarGroupLabel>
         <SidebarMenu className="w-full">
-          <div className="max-h-[calc(100vh_-_17rem)] overflow-y-auto flex flex-col gap-2.5">
+          <div className="max-h-[calc(100dvh_-_17rem)] overflow-y-auto flex flex-col gap-2.5">
             {loading ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />

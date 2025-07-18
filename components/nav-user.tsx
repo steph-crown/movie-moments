@@ -155,8 +155,13 @@ export function NavUser() {
       if (result.success) {
         toast.success("Profile updated successfully!");
         setShowProfileModal(false);
-        // Reload profile data
+
+        // CRITICAL FIX: Reload profile data AND refresh auth context
         await loadUserProfile();
+
+        // Force a hard refresh to update auth context
+        // This ensures useAuth() picks up the new user metadata
+        window.location.reload();
       } else {
         toast.error(result.error || "Failed to update profile");
       }
@@ -216,10 +221,14 @@ export function NavUser() {
     );
   }
 
+  // FIXED: Use userProfile data if available, fallback to user metadata
   const displayName =
-    user.user_metadata?.display_name || user.user_metadata?.username || "User";
+    userProfile?.display_name ||
+    user.user_metadata?.display_name ||
+    user.user_metadata?.username ||
+    "User";
   const email = user.email || "";
-  const avatarUrl = user.user_metadata?.avatar_url;
+  const avatarUrl = userProfile?.avatar_url || user.user_metadata?.avatar_url;
 
   return (
     <>

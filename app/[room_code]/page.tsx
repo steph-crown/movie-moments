@@ -247,7 +247,7 @@ export default function Page() {
     >
       <RoomSidebar variant="inset" />
 
-      <SidebarInset className="relative flex flex-col h-[calc(100vh_-_1rem)]">
+      <SidebarInset className="relative flex flex-col h-[100dvh] sm:h-[calc(100dvh_-_1rem)]">
         <RoomHeader room={room} />
 
         <UserPositionProvider room={room}>

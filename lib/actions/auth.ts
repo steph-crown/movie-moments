@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// lib/actions/auth.ts - Authentication and profile actions
+// lib/actions/auth.ts - Fixed to update both auth.users and profiles
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
@@ -49,7 +49,7 @@ export async function logoutUser(): Promise<{
   }
 }
 
-// Get current user profile
+// Get current user profile (reads from profiles table + auth.users)
 export async function getCurrentUserProfile(): Promise<{
   success: boolean;
   data?: UserProfile;
@@ -67,7 +67,7 @@ export async function getCurrentUserProfile(): Promise<{
       return { success: false, error: "Not authenticated" };
     }
 
-    // Get profile data
+    // Get profile data from profiles table
     const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("*")
@@ -100,7 +100,7 @@ export async function getCurrentUserProfile(): Promise<{
   }
 }
 
-// Update user profile
+// Update user profile - FIXED to update both auth.users and profiles
 export async function updateUserProfile(data: UpdateProfileData): Promise<{
   success: boolean;
   error?: string;
@@ -137,7 +137,7 @@ export async function updateUserProfile(data: UpdateProfileData): Promise<{
       }
     }
 
-    // Update profile
+    // 1. Update profiles table
     const { error: updateError } = await supabase
       .from("profiles")
       .update({
@@ -151,7 +151,31 @@ export async function updateUserProfile(data: UpdateProfileData): Promise<{
       return { success: false, error: "Failed to update profile" };
     }
 
-    // Revalidate relevant paths
+    // 2. Update auth.users.user_metadata (THIS IS THE KEY FIX!)
+    const metadataUpdate: any = {};
+    if (data.display_name !== undefined) {
+      metadataUpdate.display_name = data.display_name;
+    }
+    if (data.username !== undefined) {
+      metadataUpdate.username = data.username;
+    }
+    if (data.avatar_url !== undefined) {
+      metadataUpdate.avatar_url = data.avatar_url;
+    }
+
+    if (Object.keys(metadataUpdate).length > 0) {
+      const { error: authUpdateError } = await supabase.auth.updateUser({
+        data: metadataUpdate,
+      });
+
+      if (authUpdateError) {
+        console.error("Auth metadata update error:", authUpdateError);
+        // Don't fail the entire operation for this
+        console.warn("Profile updated but auth metadata sync failed");
+      }
+    }
+
+    // Revalidate relevant paths to refresh the UI
     revalidatePath("/", "layout");
 
     return {
