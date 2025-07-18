@@ -19,7 +19,6 @@ interface PositionStalenessModalProps {
   onUpdatePosition: () => void;
   onDismiss: () => void;
   currentPosition: string;
-  timeElapsed: number; // in minutes
 }
 
 export function PositionStalenessModal({
@@ -27,7 +26,6 @@ export function PositionStalenessModal({
   onUpdatePosition,
   onDismiss,
   currentPosition,
-  timeElapsed,
 }: PositionStalenessModalProps) {
   const [countdown, setCountdown] = useState(30); // 30 second auto-dismiss
   const { refreshPosition } = useUserPosition();
@@ -61,7 +59,14 @@ export function PositionStalenessModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
+    <Dialog
+      open={open}
+      onOpenChange={(open) => {
+        if (!open) {
+          onDismiss();
+        }
+      }}
+    >
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

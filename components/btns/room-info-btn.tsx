@@ -96,17 +96,17 @@ export function RoomInfo({ room }: { room: IRoom }) {
   const formatPosition = (participant: RoomParticipant) => {
     if (room.content.content_type === "series") {
       if (participant.current_season && participant.current_episode) {
-        const timestamp = participant.playback_timestamp
-          ? `${Math.floor(participant.playback_timestamp / 60)}:${(participant.playback_timestamp % 60).toString().padStart(2, "0")}`
+        const timestamp = Number(participant.playback_timestamp)
+          ? `${Math.floor(Number(participant.playback_timestamp) / 60)}:${(Number(participant.playback_timestamp) % 60).toString().padStart(2, "0")}`
           : "0:00";
         return `S${participant.current_season}E${participant.current_episode} ${timestamp}`;
       }
       return "Not started";
     } else {
       // Movie
-      if (participant.playback_timestamp) {
-        const minutes = Math.floor(participant.playback_timestamp / 60);
-        const seconds = participant.playback_timestamp % 60;
+      if (Number(participant.playback_timestamp)) {
+        const minutes = Math.floor(Number(participant.playback_timestamp) / 60);
+        const seconds = Number(participant.playback_timestamp) % 60;
         return `${minutes}:${seconds.toString().padStart(2, "0")}`;
       }
       return "0:00";
@@ -280,7 +280,7 @@ export function RoomInfo({ room }: { room: IRoom }) {
           <Separator />
 
           {/* Members List */}
-          <div className="grid gap-4 flex-1">
+          <div className="grid gap-4">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-muted-foreground" />
               <h3 className="text-lg font-semibold">

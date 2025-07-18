@@ -1,11 +1,35 @@
+import { googleLogin } from "@/lib/actions/google";
 import { Button } from "../ui/button";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 export function GoogleSignInBtn({
   children,
   ...rest
 }: React.ComponentProps<"button">) {
+  const [isLoading, setIsLoading] = useState(false);
+
+  const signin = async () => {
+    setIsLoading(true);
+    const response = await googleLogin();
+
+    if (response.data?.url) {
+      setIsLoading(false);
+      window.location.href = response.data.url;
+    }
+  };
+
   return (
-    <Button variant="outline" type="button" className="w-full" {...rest}>
+    <Button
+      variant="outline"
+      type="button"
+      className="w-full"
+      {...rest}
+      onClick={signin}
+      disabled={isLoading}
+    >
+      {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+
       <svg viewBox="0 0 24 24" className="mr-3 size-5">
         <path
           fill="#4285F4"

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { BlockLoader } from "@/components/loaders/block-loader";
@@ -281,12 +282,8 @@ export default function Page() {
 function StalenessModalWrapper({ room }: { room: IRoom }) {
   const [showPositionDialog, setShowPositionDialog] = useState(false);
 
-  const {
-    position,
-    lastPositionUpdate,
-    showStalenessModal,
-    dismissStalenessModal,
-  } = useUserPosition();
+  const { position, showStalenessModal, dismissStalenessModal } =
+    useUserPosition();
 
   // Format current position for staleness modal
   const formatCurrentPosition = () => {
@@ -310,12 +307,12 @@ function StalenessModalWrapper({ room }: { room: IRoom }) {
   };
 
   // Calculate time elapsed since last position update
-  const getTimeElapsed = () => {
-    if (!lastPositionUpdate) return 0;
-    return Math.floor(
-      (Date.now() - lastPositionUpdate.getTime()) / (1000 * 60)
-    );
-  };
+  // const getTimeElapsed = () => {
+  //   if (!lastPositionUpdate) return 0;
+  //   return Math.floor(
+  //     (Date.now() - lastPositionUpdate.getTime()) / (1000 * 60)
+  //   );
+  // };
 
   return (
     <>
@@ -327,7 +324,6 @@ function StalenessModalWrapper({ room }: { room: IRoom }) {
         }}
         onDismiss={dismissStalenessModal}
         currentPosition={formatCurrentPosition()}
-        timeElapsed={getTimeElapsed()}
       />
 
       <PositionSetupDialog

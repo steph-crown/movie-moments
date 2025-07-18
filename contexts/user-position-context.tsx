@@ -1,24 +1,25 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // contexts/user-position-context.tsx - With staleness detection
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  ReactNode,
-} from "react";
+import { useAuth } from "@/hooks/use-auth";
+import { IRoom, RoomParticipant } from "@/interfaces/room.interface";
 import {
   getCurrentUserPosition,
-  updateParticipantPosition,
   getRoomParticipants,
+  updateParticipantPosition,
 } from "@/lib/actions/rooms";
 import { createClient } from "@/lib/supabase/client";
-import { IRoom, RoomParticipant } from "@/interfaces/room.interface";
+import { parseTimestamp } from "@/lib/utils/season.utils";
 import { RealtimeChannel } from "@supabase/supabase-js";
-import { useAuth } from "@/hooks/use-auth";
-import { decodeSeasonData, parseTimestamp } from "@/lib/utils/season.utils";
+import {
+  createContext,
+  ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
 
 interface UserPosition {
   current_season: string | null;
@@ -78,12 +79,14 @@ export function UserPositionProvider({
   const [lastPositionUpdate, setLastPositionUpdate] = useState<Date | null>(
     null
   );
-  const [showStalenessModal, setShowStalenessModal] = useState(true);
+  const [showStalenessModal, setShowStalenessModal] = useState(false);
   const [positionDialogCallback, setPositionDialogCallback] = useState<
     (() => void) | null
   >(null);
 
   const supabase = createClient();
+
+  void channel;
 
   // Constants for staleness detection
   const STALENESS_THRESHOLD = 15 * 60 * 1000; // 15 minutes
@@ -297,9 +300,12 @@ export function UserPositionProvider({
   );
 
   const dismissStalenessModal = useCallback(() => {
+    console.log("🚪 Dismissing staleness modal");
     setShowStalenessModal(false);
     setLastPositionUpdate(new Date()); // Reset staleness timer
   }, []);
+
+  console.log({ showStalenessModal });
 
   const openPositionDialog = useCallback(() => {
     setShowStalenessModal(false);
@@ -310,25 +316,25 @@ export function UserPositionProvider({
   }, [positionDialogCallback]);
 
   // Format position for display
-  const formatPosition = useCallback(() => {
-    if (!position) return "Unknown position";
+  // const formatPosition = useCallback(() => {
+  //   if (!position) return "Unknown position";
 
-    if (room.content.content_type === "series" && position.current_season) {
-      try {
-        const seasonData = decodeSeasonData(position.current_season);
-        const episode = position.current_episode || 1;
-        const timestamp = position.playback_timestamp || "0:00";
-        return `S${seasonData.number}E${episode} ${timestamp}`;
-      } catch {
-        const season = position.current_season;
-        const episode = position.current_episode || 1;
-        const timestamp = position.playback_timestamp || "0:00";
-        return `S${season}E${episode} ${timestamp}`;
-      }
-    }
+  //   if (room.content.content_type === "series" && position.current_season) {
+  //     try {
+  //       const seasonData = decodeSeasonData(position.current_season);
+  //       const episode = position.current_episode || 1;
+  //       const timestamp = position.playback_timestamp || "0:00";
+  //       return `S${seasonData.number}E${episode} ${timestamp}`;
+  //     } catch {
+  //       const season = position.current_season;
+  //       const episode = position.current_episode || 1;
+  //       const timestamp = position.playback_timestamp || "0:00";
+  //       return `S${season}E${episode} ${timestamp}`;
+  //     }
+  //   }
 
-    return position.playback_timestamp || "0:00";
-  }, [position, room.content.content_type]);
+  //   return position.playback_timestamp || "0:00";
+  // }, [position, room.content.content_type]);
 
   // Check for position staleness
   useEffect(() => {
