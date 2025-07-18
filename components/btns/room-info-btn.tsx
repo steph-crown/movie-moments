@@ -64,6 +64,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { ShareBtn } from "../btns/share-btn";
+import { IconShare3 } from "@tabler/icons-react";
 
 interface RoomSettingsForm {
   title: string;
@@ -366,7 +367,15 @@ export function RoomInfo({ room }: { room: IRoom }) {
             <div className="grid gap-3">
               <div className="flex gap-2">
                 {/* Share Button */}
-                <ShareBtn room={room} />
+                <ShareBtn
+                  room={room}
+                  triggerNode={
+                    <Button variant="outline" className="flex-1">
+                      <IconShare3 className="h-4 w-4 mr-2" />
+                      Share
+                    </Button>
+                  }
+                />
 
                 {/* Settings Button (Creator Only) */}
                 {isCreator && (

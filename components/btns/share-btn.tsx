@@ -5,7 +5,7 @@ import { IconShare3 } from "@tabler/icons-react";
 import clsx from "clsx";
 import { Check, Copy, Mail, User2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Badge } from "../ui/badge";
@@ -40,7 +40,13 @@ interface InviteItem {
   isValid: boolean;
 }
 
-export function ShareBtn({ room }: { room: IRoom }) {
+export function ShareBtn({
+  room,
+  triggerNode,
+}: {
+  room: IRoom;
+  triggerNode?: ReactNode;
+}) {
   const roomCode = room.room_code;
   const roomTitle = room.title;
   const [isOpen, setIsOpen] = useState(false);
@@ -248,15 +254,17 @@ export function ShareBtn({ room }: { room: IRoom }) {
       }}
     >
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="font-semibold"
-          onClick={handleShareClick}
-        >
-          <IconShare3 className="text-muted-foreground text-sm" />
-          Share
-        </Button>
+        {triggerNode || (
+          <Button
+            variant="outline"
+            size="sm"
+            className="font-semibold"
+            onClick={handleShareClick}
+          >
+            <IconShare3 className="text-muted-foreground text-sm" />
+            Share
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="sm:max-w-[32.5rem]" fullScreenOnMobile={true}>
