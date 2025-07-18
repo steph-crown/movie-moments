@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 // components/room/movie-position.tsx
 "use client";
 

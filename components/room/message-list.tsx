@@ -120,7 +120,9 @@ function SpoilerConfirmationModal({
             <Checkbox
               id="dont-show-again"
               checked={dontShowAgain}
-              onCheckedChange={setDontShowAgain}
+              onCheckedChange={(value) => {
+                setDontShowAgain(!!value);
+              }}
             />
             <label
               htmlFor="dont-show-again"
@@ -463,6 +465,10 @@ function MessageItem({
     onReply?.(message);
   };
 
+  const getUserName = (user: { username: string; display_name: string }) => {
+    return user.username || user.display_name || "Unknown User";
+  };
+
   const handleUnblurClick = (e: React.MouseEvent) => {
     e.stopPropagation();
 
@@ -496,7 +502,7 @@ function MessageItem({
         };
       }
       acc[reaction.emoji].count++;
-      acc[reaction.emoji].users.push(reaction.user.display_name);
+      acc[reaction.emoji].users.push(getUserName(reaction.user));
       return acc;
     },
     {} as Record<
@@ -556,7 +562,7 @@ function MessageItem({
                 <span className="font-medium">
                   {parentMessage.user_id === user?.id
                     ? "You"
-                    : parentMessage.user.display_name}
+                    : getUserName(parentMessage.user)}
                 </span>
                 <span className="truncate max-w-[200px]">
                   {parentMessage.message_text}
@@ -573,7 +579,7 @@ function MessageItem({
                   <Avatar className="w-8 h-8">
                     <AvatarImage src={message.user.avatar_url} />
                     <AvatarFallback className="text-xs bg-primary/10">
-                      {message.user.display_name.charAt(0).toUpperCase()}
+                      {getUserName(message.user).charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                 ) : (
@@ -646,7 +652,7 @@ function MessageItem({
               {!isOwnMessage && isFirstInGroup && (
                 <div className="flex items-center gap-2 mb-2">
                   <span className="font-semibold text-sm">
-                    {message.user.display_name}
+                    ~ {getUserName(message.user)}
                   </span>
                   <span className="text-[.6835rem] opacity-70">
                     {messageTime.timeOnly}

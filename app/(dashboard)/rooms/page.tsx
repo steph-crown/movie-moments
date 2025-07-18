@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 "use client";
 
 import { EmptyRoomsState } from "@/components/room/empty-rooms-state";

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // components/room/seasons-episode-selector.tsx
 "use client";
 
