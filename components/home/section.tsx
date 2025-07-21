@@ -27,7 +27,7 @@ export function Section() {
             height={500}
             className="size-12 rounded-full"
           />
-          <Button className="rounded-[0.625rem] bg-white text-[#6366f1]">
+          <Button className="rounded-[0.625rem] bg-white hover:bg-white/80 text-[#6366f1]">
             Login
           </Button>
         </div>
@@ -42,7 +42,7 @@ export function Section() {
             weeks later.
           </h1>
         </div>
-        <Button className="mx-auto rounded-[0.625rem] text-[#6366f1] bg-white">
+        <Button className="mx-auto rounded-[0.625rem] text-[#6366f1] bg-white hover:bg-white/80">
           Start sharing moments
         </Button>
       </section>
