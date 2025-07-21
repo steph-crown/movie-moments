@@ -1,13 +1,12 @@
 import { ArrowRight } from "lucide-react";
-import Image from "next/image";
 
 import { Badge } from "@/components/home/badge";
 import { Gradient } from "@/components/home/gradient";
 import { Grainify } from "@/components/home/grainify";
 import { Button } from "@/components/home/ui/button";
 import Link from "next/link";
-import { Quote } from "../quote";
 import { Logo } from "../logo";
+import { Quote } from "../quote";
 
 export function Section() {
   return (
@@ -58,13 +57,6 @@ export function Section() {
             A Simple Wish
           </h2>
         </div>
-        {/* <Image
-          alt="Image"
-          src="/images/Note.png"
-          width={800}
-          height={500}
-          className="mx-auto shadow-md rounded-2xl"
-        /> */}
 
         <Quote />
       </section>
@@ -255,13 +247,13 @@ export function Section() {
       <section className="w-full flex flex-col rounded-3xl bg-[#6365F1] text-[#F8FAFC] relative isolate overflow-hidden gap-y-8 md:p-12 p-6">
         <Grainify className="opacity-25" />
         <div className="bg-[rgba(255,255,255,0)] bg-[linear-gradient(#eaeaea_1.2px,_transparent_1.2px),_linear-gradient(to_right,_#eaeaea_1.2px,_rgba(255,255,255,0)_1.2px)] bg-[length:24px_24px] absolute inset-0 rounded-3xl -z-[1] opacity-10 [clip-path:circle(40%)]" />
-        <Image
+        {/* <Image
           alt="Image"
           src="/images/SphereRingStandingL.png"
           width={400}
           height={400}
           className="absolute -z-[1] left-1/2 -translate-x-1/2 -translate-y-1/2 top-1/2"
-        />
+        /> */}
         <Badge text="Get started" className="bg-background mx-auto" />
         <div className="flex flex-col items-center gap-y-8">
           <h2 className="font-inter tracking-tight text-balance text-center text-5xl sm:text-7xl">
@@ -275,7 +267,7 @@ export function Section() {
         </Link>
       </section>
 
-      <p className="mb-12 mt-4 text-center font-medium">
+      <p className="mb-8 mt-4 text-center font-medium">
         For the love of movies. Built by{" "}
         <a
           href="https://stephcrown.com"
