@@ -54,7 +54,6 @@ export function ShareBtn({
   const [inviteItems, setInviteItems] = useState<InviteItem[]>([]);
   const [linkCopied, setLinkCopied] = useState(false);
   const [showUsernameSuggestions, setShowUsernameSuggestions] = useState(false);
-  // const [usernameSuggestions, setUsernameSuggestions] = useState(mockUsers);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [usernameSuggestions, setUsernameSuggestions] = useState<
@@ -156,14 +155,34 @@ export function ShareBtn({
     }
   };
 
+  // Fixed: Handle both keyboard and form submission
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (currentInput.trim()) {
+        const value = currentInput.trim();
+        const type = value.startsWith("@") ? "username" : "email";
+        addInviteItem(value, type);
+      }
+    } else if (e.key === ",") {
       e.preventDefault();
       if (currentInput.trim()) {
         const value = currentInput.trim();
         const type = value.startsWith("@") ? "username" : "email";
         addInviteItem(value, type);
       }
+    }
+  };
+
+  // New: Handle form submission (for mobile)
+  const handleInputSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (currentInput.trim()) {
+      const value = currentInput.trim();
+      const type = value.startsWith("@") ? "username" : "email";
+      addInviteItem(value, type);
     }
   };
 
@@ -282,49 +301,56 @@ export function ShareBtn({
           <div className="grid gap-3">
             <Label>Invite by email or username</Label>
             <div className="relative">
-              <div className="flex flex-wrap gap-2 min-h-[2.5rem] p-3 border rounded-lg bg-background">
-                {/* Display added invite items as badges */}
-                {inviteItems.map((item) => (
-                  <Badge
-                    key={item.id}
-                    variant="secondary"
-                    // variant={item.isValid ? "secondary" : "destructive"}
-                    className={clsx(
-                      "flex items-center gap-1",
-                      !item.isValid &&
-                        "!text-destructive !border-destructive !border !border-solid"
-                    )}
-                  >
-                    {item.type === "email" ? (
-                      <Mail className="h-3 w-3" />
-                    ) : (
-                      <User2 className="h-3 w-3" />
-                    )}
-                    {item.value}
-                    <button
-                      type="button"
-                      onClick={() => removeInviteItem(item.id)}
-                      className="ml-1 hover:text-destructive"
+              {/* Wrap input in form to handle mobile submission */}
+              <form onSubmit={handleInputSubmit}>
+                <div className="flex flex-wrap gap-2 min-h-[2.5rem] p-3 border rounded-lg bg-background">
+                  {/* Display added invite items as badges */}
+                  {inviteItems.map((item) => (
+                    <Badge
+                      key={item.id}
+                      variant="secondary"
+                      className={clsx(
+                        "flex items-center gap-1",
+                        !item.isValid &&
+                          "!text-destructive !border-destructive !border !border-solid"
+                      )}
                     >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
+                      {item.type === "email" ? (
+                        <Mail className="h-3 w-3" />
+                      ) : (
+                        <User2 className="h-3 w-3" />
+                      )}
+                      {item.value}
+                      <button
+                        type="button"
+                        onClick={() => removeInviteItem(item.id)}
+                        className="ml-1 hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
 
-                {/* Input field */}
-                <Input
-                  ref={inputRef}
-                  value={currentInput}
-                  onChange={(e) => handleInputChange(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={
-                    inviteItems.length === 0
-                      ? "friend@gmail.com or @username"
-                      : ""
-                  }
-                  className="border-none shadow-none focus-visible:ring-0 flex-1 min-w-[200px] p-0 h-auto"
-                />
-              </div>
+                  {/* Input field */}
+                  <Input
+                    ref={inputRef}
+                    value={currentInput}
+                    onChange={(e) => handleInputChange(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder={
+                      inviteItems.length === 0
+                        ? "friend@gmail.com or @username"
+                        : ""
+                    }
+                    className="border-none shadow-none focus-visible:ring-0 flex-1 min-w-[200px] p-0 h-auto"
+                    // Add mobile-specific attributes
+                    enterKeyHint="done"
+                    inputMode="email"
+                  />
+                </div>
+                {/* Hidden submit button for form submission */}
+                <button type="submit" style={{ display: "none" }} />
+              </form>
 
               {/* Username suggestions dropdown */}
               {showUsernameSuggestions && usernameSuggestions.length > 0 && (
