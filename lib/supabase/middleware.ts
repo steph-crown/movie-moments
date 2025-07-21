@@ -40,8 +40,6 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  console.log({ userdjddjdj: user });
-
   // console.log({ theuseerr: user });
 
   // if user and the route is sign up or login, redirect to /rooms

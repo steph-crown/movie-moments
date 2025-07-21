@@ -6,6 +6,7 @@ import { LoginBtn } from "@/components/btns/login-btn";
 import { ViewRoomBtn } from "@/components/btns/view-room-btn";
 import { Logo } from "@/components/logo";
 import { ProfileMenu } from "@/components/profile-menu";
+import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/popover";
 import { UserAvatar } from "@/components/user/user-avatar";
 import { useAuth } from "@/hooks/use-auth";
-import { MenuIcon } from "lucide-react";
+import { MenuIcon, Plus, User2, Users } from "lucide-react";
 import Link from "next/link";
 import { ReactNode } from "react";
 
@@ -70,7 +71,45 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </PopoverTrigger>
 
               <PopoverContent>
-                Place content for the popover here.
+                <div className="flex flex-col gap-2 -m-2">
+                  {/* Place content for the popover here. */}
+
+                  <CreateRoomBtn
+                    triggerNode={
+                      <Button
+                        variant="ghost"
+                        className="text-sm font-semibold justify-start"
+                      >
+                        <Plus />
+                        Create Room
+                      </Button>
+                    }
+                  />
+
+                  <JoinRoomBtn
+                    triggerNode={
+                      <Button
+                        variant="ghost"
+                        className="text-sm font-semibold justify-start"
+                      >
+                        <Users />
+                        Join Room
+                      </Button>
+                    }
+                  />
+
+                  <ProfileMenu
+                    menuTrigger={
+                      <Button
+                        variant="ghost"
+                        className="text-sm font-semibold justify-start"
+                      >
+                        <User2 />
+                        My Profile
+                      </Button>
+                    }
+                  />
+                </div>
               </PopoverContent>
             </Popover>
           </div>

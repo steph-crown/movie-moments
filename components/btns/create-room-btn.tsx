@@ -304,6 +304,8 @@ export function CreateRoomBtn({
 
   // Show loading state if auth is loading
   if (loading) {
+    if (triggerNode) return null;
+
     return (
       <div className={clsx(fullWidth && "!w-full !flex")}>
         <Button

@@ -18,7 +18,13 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
-export function JoinRoomBtn({ btnClassName }: { btnClassName?: string }) {
+export function JoinRoomBtn({
+  btnClassName,
+  triggerNode,
+}: {
+  btnClassName?: string;
+  triggerNode?: React.ReactNode;
+}) {
   const [joinDialogOpen, setJoinDialogOpen] = useState(false);
   const [roomCodeInput, setRoomCodeInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -82,10 +88,14 @@ export function JoinRoomBtn({ btnClassName }: { btnClassName?: string }) {
   return (
     <Dialog open={joinDialogOpen} onOpenChange={handleDialogClose}>
       <DialogTrigger asChild>
-        <Button variant="outline" className={btnClassName} size="lg">
-          <Users className="w-4 h-4" />
-          Join Room
-        </Button>
+        {triggerNode ? (
+          triggerNode
+        ) : (
+          <Button variant="outline" className={btnClassName} size="lg">
+            <Users className="w-4 h-4" />
+            Join Room
+          </Button>
+        )}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

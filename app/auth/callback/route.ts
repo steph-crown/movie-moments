@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 // The client you created from the Server-Side Auth instructions
 
 export async function GET(request: Request) {
+  console.log("auth callback route hit");
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   // if "next" is in param, use it as the redirect URL
