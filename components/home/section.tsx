@@ -12,6 +12,7 @@ import {
   TabsTrigger,
   TabsContent,
 } from "@/components/home/ui/tabs";
+import Link from "next/link";
 
 export function Section() {
   return (
@@ -27,9 +28,12 @@ export function Section() {
             height={500}
             className="size-12 rounded-full"
           />
-          <Button className="rounded-[0.625rem] bg-white hover:bg-white/80 text-[#6366f1]">
-            Login
-          </Button>
+
+          <Link href="/auth/login" className="block">
+            <Button className="rounded-[0.625rem] bg-white hover:bg-white/80 text-[#6366f1]">
+              Login
+            </Button>
+          </Link>
         </div>
         <div className="flex flex-col items-center gap-y-8">
           <h2 className="font-inter font-semibold tracking-tight text-balance sm:text-8xl text-center text-5xl">
@@ -42,9 +46,12 @@ export function Section() {
             weeks later.
           </h1>
         </div>
-        <Button className="mx-auto rounded-[0.625rem] text-[#6366f1] bg-white hover:bg-white/80">
-          Start sharing moments
-        </Button>
+
+        <Link href="/auth/signup" className="block mx-auto w-max">
+          <Button className="mx-auto rounded-[0.625rem] text-[#6366f1] bg-white hover:bg-white/80">
+            Start sharing moments
+          </Button>
+        </Link>
       </section>
       <section className="w-full flex flex-col rounded-3xl relative isolate gap-y-8 bg-[#F1F1FE] text-[#0A0A0A] overflow-hidden md:p-12 p-6">
         <Grainify />
@@ -107,10 +114,13 @@ export function Section() {
                 perfect spoiler-free discovery.
               </p>
             </div>
-            <Button className="rounded-[0.625rem] bg-[#6366f1]">
-              Start sharing moments
-              <ArrowRight className="ml-2 size-4" />
-            </Button>
+
+            <Link href="/auth/signup" className="block">
+              <Button className="rounded-[0.625rem] bg-[#6366f1] !w-full">
+                Start sharing moments
+                <ArrowRight className="ml-2 size-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
