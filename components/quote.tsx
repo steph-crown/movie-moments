@@ -60,13 +60,13 @@ export function Quote() {
           perfect moment.
         </p>
         <p className="font-medium text-sm sm:text-base mb-4">
-          Why don&apos;t movies work like this?
+          Why don&apos;t we have something like that for movies and shows?
         </p>
         <p className="font-medium text-sm sm:text-base">
-          So last week I stopped complaining and started building. Now every
-          time something amazing happens in a show, I don&apos;t have to keep it
-          to myself. I can share it at the exact timestamp so my friends will
-          discover it when they reach that same moment.
+          So I stopped wishing and started building. Now every time something
+          amazing happens in a show, I don&apos;t have to keep it to myself. I
+          can share it at the exact timestamp so my friends will discover it
+          when they reach that same moment.
         </p>
       </div>
     </div>

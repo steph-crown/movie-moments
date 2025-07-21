@@ -1,17 +1,10 @@
-import Image from "next/image";
 import { ArrowRight } from "lucide-react";
+import Image from "next/image";
 
+import { Badge } from "@/components/home/badge";
+import { Gradient } from "@/components/home/gradient";
 import { Grainify } from "@/components/home/grainify";
 import { Button } from "@/components/home/ui/button";
-import { Gradient } from "@/components/home/gradient";
-import { Badge } from "@/components/home/badge";
-import { Card } from "@/components/home/ui/card";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/home/ui/tabs";
 import Link from "next/link";
 import { Quote } from "../quote";
 
@@ -127,7 +120,7 @@ export function Section() {
           </div>
         </div>
       </section>
-      <section
+      {/* <section
         id="solutions"
         className="w-full flex flex-col rounded-3xl relative isolate gap-y-8 bg-[#F1F1FE] text-[#0A0A0A] overflow-hidden md:p-12 p-6"
       >
@@ -138,7 +131,6 @@ export function Section() {
           <h2 className="font-inter tracking-tight text-balance text-5xl font-light sm:text-7xl grow">
             Very Easy to Use
           </h2>
-          {/* <p className="max-w-md sm:text-right text-balance">&lt;br&gt;</p> */}
         </div>
         <Card className="overflow-hidden border-none shadow-md">
           <Tabs defaultValue="item-1">
@@ -162,9 +154,12 @@ export function Section() {
                     Enjoy your film on Netflix, Disney+, or any platform. When
                     something amazing happens, note the timestamp.
                   </p>
-                  <Button className="w-fit rounded-[0.625rem]">
-                    Get started
-                  </Button>
+
+                  <Link href="/auth/signup">
+                    <Button className="w-fit rounded-[0.625rem]">
+                      Get started
+                    </Button>
+                  </Link>
                 </div>
                 <div className="relative rounded-xl overflow-hidden border">
                   <Image
@@ -254,7 +249,7 @@ export function Section() {
             </TabsContent>
           </Tabs>
         </Card>
-      </section>
+      </section> */}
       <section className="w-full flex flex-col rounded-3xl bg-[#6365F1] text-[#F8FAFC] relative isolate overflow-hidden gap-y-8 md:p-12 p-6">
         <Grainify className="opacity-25" />
         <div className="bg-[rgba(255,255,255,0)] bg-[linear-gradient(#eaeaea_1.2px,_transparent_1.2px),_linear-gradient(to_right,_#eaeaea_1.2px,_rgba(255,255,255,0)_1.2px)] bg-[length:24px_24px] absolute inset-0 rounded-3xl -z-[1] opacity-10 [clip-path:circle(40%)]" />
@@ -271,11 +266,23 @@ export function Section() {
             Share Every Movie Moments
           </h2>
         </div>
-        <Button className="mx-auto text-[#6366f1] bg-white rounded-[0.625rem]">
-          Start converting today
-        </Button>
-        For the love of movies. Built by Stephen
+        <Link href="/auth/signup" className="block mx-auto w-max">
+          <Button className="mx-auto text-[#6366f1] bg-white rounded-[0.625rem]">
+            Start sharing moments
+          </Button>
+        </Link>
       </section>
+
+      <p className="mb-12 mt-4 text-center font-medium">
+        For the love of movies. Built by{" "}
+        <a
+          href="https://stephcrown.com"
+          className="text-primary font-semibold underline"
+        >
+          Stephen
+        </a>{" "}
+        &copy; {new Date().getFullYear()}{" "}
+      </p>
     </main>
   );
 }
