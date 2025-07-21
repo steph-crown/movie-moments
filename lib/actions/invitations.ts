@@ -377,9 +377,9 @@ async function sendResendInvitationEmail({
 
     const { data, error } = await resend.emails.send({
       // from: "MovieMoments <noreply@moviemoments.com>", // Replace with your verified domain
-      from: "MovieMoments <onboarding@resend.dev>", // Replace with your verified domain
-      // to: [email],
-      to: "emmanuelstephen024@gmail.com",
+      from: "MovieMoments <onboarding@movie-moments.vercel.app>", // Replace with your verified domain
+      to: [email],
+      // to: "emmanuelstephen024@gmail.com",
       subject: `Join "${roomTitle}" on MovieMoments ${email}`,
       html: `
         <!DOCTYPE html>

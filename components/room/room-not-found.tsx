@@ -4,6 +4,7 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/ui/button";
 import { LogIn, Plus } from "lucide-react";
 import { CreateRoomBtn } from "../btns/create-room-btn";
+import Link from "next/link";
 
 interface RoomNotFoundProps {
   roomCode?: string;
@@ -63,6 +64,16 @@ export function RoomNotFound({
           <p className="text-xs text-muted-foreground mt-6">
             💡 Need help? Make sure you have the correct room code or ask the
             room creator to invite you.
+          </p>
+
+          <p className="text-xs text-muted-foreground mt-2">
+            Or{" "}
+            <Link
+              href="/rooms"
+              className="text-primary font-semibold underline"
+            >
+              view your rooms
+            </Link>
           </p>
         </div>
       </div>

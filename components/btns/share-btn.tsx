@@ -3,7 +3,7 @@ import { sendRoomInvitations } from "@/lib/actions/invitations";
 import { searchUsersByUsername } from "@/lib/actions/users";
 import { IconShare3 } from "@tabler/icons-react";
 import clsx from "clsx";
-import { Check, Copy, Mail, User2, X } from "lucide-react";
+import { Check, Copy, Mail, Plus, User2, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -155,35 +155,31 @@ export function ShareBtn({
     }
   };
 
-  // Fixed: Handle both keyboard and form submission
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (currentInput.trim()) {
-        const value = currentInput.trim();
-        const type = value.startsWith("@") ? "username" : "email";
-        addInviteItem(value, type);
-      }
-    } else if (e.key === ",") {
-      e.preventDefault();
-      if (currentInput.trim()) {
-        const value = currentInput.trim();
-        const type = value.startsWith("@") ? "username" : "email";
-        addInviteItem(value, type);
-      }
-    }
-  };
-
-  // New: Handle form submission (for mobile)
-  const handleInputSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Function to add current input as invite item
+  const addCurrentInput = () => {
     if (currentInput.trim()) {
       const value = currentInput.trim();
       const type = value.startsWith("@") ? "username" : "email";
       addInviteItem(value, type);
     }
+  };
+
+  // Handle keyboard events
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      addCurrentInput();
+    } else if (e.key === ",") {
+      e.preventDefault();
+      addCurrentInput();
+    }
+  };
+
+  // Handle form submission (for mobile)
+  const handleInputSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    addCurrentInput();
   };
 
   const handleUsernameSuggestionClick = (username: string) => {
@@ -301,84 +297,126 @@ export function ShareBtn({
           <div className="grid gap-3">
             <Label>Invite by email or username</Label>
             <div className="relative">
-              {/* Wrap input in form to handle mobile submission */}
-              <form onSubmit={handleInputSubmit}>
-                <div className="flex flex-wrap gap-2 min-h-[2.5rem] p-3 border rounded-lg bg-background">
-                  {/* Display added invite items as badges */}
-                  {inviteItems.map((item) => (
-                    <Badge
-                      key={item.id}
-                      variant="secondary"
-                      className={clsx(
-                        "flex items-center gap-1",
-                        !item.isValid &&
-                          "!text-destructive !border-destructive !border !border-solid"
-                      )}
-                    >
-                      {item.type === "email" ? (
-                        <Mail className="h-3 w-3" />
-                      ) : (
-                        <User2 className="h-3 w-3" />
-                      )}
-                      {item.value}
-                      <button
-                        type="button"
-                        onClick={() => removeInviteItem(item.id)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
+              {/* Input and Add Button Container */}
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  {/* Wrap input in form to handle mobile submission */}
+                  <form onSubmit={handleInputSubmit}>
+                    <div className="flex flex-wrap gap-2 min-h-[2.5rem] p-3 border rounded-lg bg-background">
+                      {/* Display added invite items as badges */}
+                      {inviteItems.map((item) => (
+                        <Badge
+                          key={item.id}
+                          variant="secondary"
+                          className={clsx(
+                            "flex items-center gap-1",
+                            !item.isValid &&
+                              "!text-destructive !border-destructive !border !border-solid"
+                          )}
+                        >
+                          {item.type === "email" ? (
+                            <Mail className="h-3 w-3" />
+                          ) : (
+                            <User2 className="h-3 w-3" />
+                          )}
+                          {item.value}
+                          <button
+                            type="button"
+                            onClick={() => removeInviteItem(item.id)}
+                            className="ml-1 hover:text-destructive"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
 
-                  {/* Input field */}
-                  <Input
-                    ref={inputRef}
-                    value={currentInput}
-                    onChange={(e) => handleInputChange(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={
-                      inviteItems.length === 0
-                        ? "friend@gmail.com or @username"
-                        : ""
-                    }
-                    className="border-none shadow-none focus-visible:ring-0 flex-1 min-w-[200px] p-0 h-auto"
-                    // Add mobile-specific attributes
-                    enterKeyHint="done"
-                    inputMode="email"
-                  />
-                </div>
-                {/* Hidden submit button for form submission */}
-                <button type="submit" style={{ display: "none" }} />
-              </form>
+                      {/* Input field */}
+                      <Input
+                        ref={inputRef}
+                        value={currentInput}
+                        onChange={(e) => handleInputChange(e.target.value)}
+                        onKeyDown={handleKeyDown}
+                        placeholder={
+                          inviteItems.length === 0
+                            ? "friend@gmail.com or @username"
+                            : ""
+                        }
+                        className="border-none shadow-none focus-visible:ring-0 flex-1 min-w-[200px] p-0 h-auto"
+                        // Add mobile-specific attributes
+                        enterKeyHint="done"
+                        inputMode="email"
+                      />
+                    </div>
+                    {/* Hidden submit button for form submission */}
+                    <button type="submit" style={{ display: "none" }} />
+                  </form>
 
-              {/* Username suggestions dropdown */}
-              {showUsernameSuggestions && usernameSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                  {usernameSuggestions.map((user) => (
-                    <button
-                      key={user.id}
-                      type="button"
-                      onClick={() =>
-                        handleUsernameSuggestionClick(user.username)
-                      }
-                      className="w-full px-3 py-2 text-left hover:bg-accent flex items-center gap-2"
-                    >
-                      <User2 className="h-4 w-4 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium text-sm">@{user.username}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {user.display_name}
-                        </p>
+                  {/* Username suggestions dropdown */}
+                  {showUsernameSuggestions &&
+                    usernameSuggestions.length > 0 && (
+                      <div className="absolute top-full left-0 right-0 z-50 mt-1 bg-popover border rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {usernameSuggestions.map((user) => (
+                          <button
+                            key={user.id}
+                            type="button"
+                            onClick={() =>
+                              handleUsernameSuggestionClick(user.username)
+                            }
+                            className="w-full px-3 py-2 text-left hover:bg-accent flex items-center gap-2"
+                          >
+                            <User2 className="h-4 w-4 text-muted-foreground" />
+                            <div>
+                              <p className="font-medium text-sm">
+                                @{user.username}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {user.display_name}
+                              </p>
+                            </div>
+                          </button>
+                        ))}
                       </div>
-                    </button>
-                  ))}
+                    )}
                 </div>
-              )}
+
+                {/* Add Button */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addCurrentInput}
+                  disabled={!currentInput.trim()}
+                  className="shrink-0 px-3"
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add
+                </Button>
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground">
-              💡 Type an email or @username and press Enter to add them
-            </p>
+
+            {/* Enhanced Help Text */}
+            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
+              <p className="text-sm text-blue-800 dark:text-blue-200 font-medium">
+                ✨ How to add people:
+              </p>
+              <ul className="text-sm text-blue-700 dark:text-blue-300 mt-1 space-y-1">
+                <li>
+                  • Type an email (friend@gmail.com) or username (@johndoe)
+                </li>
+                <li>
+                  • Press{" "}
+                  <kbd className="px-1.5 py-0.5 text-xs bg-blue-100 dark:bg-blue-900 border rounded font-mono">
+                    Enter
+                  </kbd>{" "}
+                  or click the <strong>Add</strong> button
+                </li>
+                <li>• Repeat to add as many people as you want</li>
+                <li>
+                  • When finished, click <strong>Send Invitations</strong> to
+                  invite everyone
+                </li>
+              </ul>
+            </div>
           </div>
 
           {/* Share Link Section */}
