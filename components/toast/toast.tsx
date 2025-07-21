@@ -101,7 +101,7 @@ export function Toast({ toast }: ToastProps) {
         </svg>
       </div>
       <div className="min-w-0 flex-1">
-        <h4 className={`font-heading text-sm font-semibold ${styles.title}`}>
+        <h4 className={`font-inter text-sm font-semibold ${styles.title}`}>
           {toast.title}
         </h4>
         <p className={`mt-1 text-sm ${styles.message}`}>{toast.message}</p>

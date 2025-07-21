@@ -8,7 +8,7 @@ export function LoginBtn({ btnClassName }: { btnClassName?: string }) {
   const router = useRouter();
 
   return (
-    <Button className={btnClassName} onClick={() => router.push("/login")}>
+    <Button className={btnClassName} onClick={() => router.push("/auth/login")}>
       <LogIn className="h-5 w-5 text-white" />
       Login
     </Button>
