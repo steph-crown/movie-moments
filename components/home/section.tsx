@@ -7,6 +7,7 @@ import { Grainify } from "@/components/home/grainify";
 import { Button } from "@/components/home/ui/button";
 import Link from "next/link";
 import { Quote } from "../quote";
+import { Logo } from "../logo";
 
 export function Section() {
   return (
@@ -15,13 +16,14 @@ export function Section() {
         <Grainify className="opacity-25" />
         <div className="bg-[rgba(255,255,255,0)] bg-[linear-gradient(#eaeaea_1.2px,_transparent_1.2px),_linear-gradient(to_right,_#eaeaea_1.2px,_rgba(255,255,255,0)_1.2px)] bg-[length:24px_24px] absolute inset-0 rounded-3xl -z-[1] opacity-10 [clip-path:circle(40%)]" />
         <div className="flex justify-between items-center">
-          <Image
+          {/* <Image
             alt="Image"
             src="/images/reweb-logo.png"
             width={500}
             height={500}
             className="size-12 rounded-full"
-          />
+          /> */}
+          <Logo color="white" />
 
           <Link href="/auth/login" className="block">
             <Button className="rounded-[0.625rem] bg-white hover:bg-white/80 text-[#6366f1]">
