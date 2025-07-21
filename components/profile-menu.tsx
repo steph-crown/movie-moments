@@ -49,8 +49,11 @@ import { ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { PasswordFormData, ProfileFormData } from "./nav-user";
+import { useRouter } from "next/navigation";
+import { BlockLoader } from "./loaders/block-loader";
 
 export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
+  const router = useRouter();
   const isMobile = useIsMobile();
   const { user, userProfile, isLoadingProfile, loadUserProfile } = useAuth();
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -104,6 +107,12 @@ export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
       if (!result.success) {
         toast.error(result.error || "Failed to logout");
       }
+
+      toast.success(
+        "Logged out successfully! Please, log in again to proceed."
+      );
+
+      router.push("/auth/login");
       // If successful, the action will redirect
     } catch (error) {
       console.error("Logout error:", error);
@@ -444,6 +453,8 @@ export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {isLoggingOut && <BlockLoader showOverlay />}
     </>
   );
 }

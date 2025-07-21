@@ -4,7 +4,6 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 export interface UserProfile {
   id: string;
@@ -39,7 +38,8 @@ export async function logoutUser(): Promise<{
 
     // Revalidate and redirect
     revalidatePath("/", "layout");
-    redirect("/auth/login");
+    return { success: true };
+    // redirect("/auth/login");
   } catch (error) {
     console.error("Logout error:", error);
     return {
