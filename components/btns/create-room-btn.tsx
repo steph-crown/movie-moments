@@ -661,9 +661,9 @@ export function CreateRoomBtn({
                       {/* Starting Position for Series */}
                       {contentType === "series" && selectedContent?.seasons && (
                         <div className="space-y-3">
-                          <Label className="text-sm font-medium">
+                          {/* <Label className="text-sm font-medium">
                             Starting Position
-                          </Label>
+                          </Label> */}
                           <SeasonsAndEpisodeSelector
                             seasons={selectedContent.seasons}
                             defaultSeason={form.watch("starting_season") || "1"}
@@ -674,13 +674,16 @@ export function CreateRoomBtn({
                             onSeasonChange={handleSeasonChange}
                             onEpisodeChange={handleEpisodeChange}
                             onTimestampChange={handleTimestampChange}
-                            seasonLabel="Starting Season"
-                            episodeLabel="Starting Episode"
-                            timestampLabel="Starting Time"
+                            seasonLabel="Current Season"
+                            episodeLabel="Current Episode"
+                            timestampLabel="Current Time"
                             showTimestamp={true}
                           />
                           <p className="text-xs text-muted-foreground">
-                            Choose where your group will begin watching together
+                            Choose where you currently are in the{" "}
+                            {selectedContent.content_type === "series"
+                              ? "series"
+                              : "movie"}
                           </p>
                         </div>
                       )}

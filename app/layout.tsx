@@ -25,6 +25,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "MovieMoments",
   description: "Share your movie moments with friends",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

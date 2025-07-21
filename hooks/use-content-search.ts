@@ -26,7 +26,7 @@ export function useContentSearch(contentType: "movie" | "series") {
     error,
     clearResults,
     clearError,
-  } = useDebouncedSearch(searchWrapper, 300);
+  } = useDebouncedSearch(searchWrapper, 1000);
 
   return {
     query,
