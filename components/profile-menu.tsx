@@ -45,12 +45,11 @@ import {
   updateUserProfile,
 } from "@/lib/actions/auth";
 import { Loader2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { PasswordFormData, ProfileFormData } from "./nav-user";
-import { useRouter } from "next/navigation";
-import { BlockLoader } from "./loaders/block-loader";
 
 export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
   const router = useRouter();
@@ -102,6 +101,7 @@ export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
 
   const handleLogout = async () => {
     setIsLoggingOut(true);
+    const toastId = toast.loading("Logging you out...");
     try {
       const result = await logoutUser();
       if (!result.success) {
@@ -119,6 +119,7 @@ export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
       toast.error("Failed to logout");
     } finally {
       setIsLoggingOut(false);
+      toast.dismiss(toastId);
     }
   };
 
@@ -134,6 +135,7 @@ export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
     }
 
     setIsUpdatingPassword(true);
+    const toastId = toast.loading("Updating password...");
     try {
       const result = await updateUserPassword(data.new_password);
 
@@ -147,12 +149,14 @@ export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
       console.error("Password update error:", error);
       toast.error("Failed to update password");
     } finally {
+      toast.dismiss(toastId);
       setIsUpdatingPassword(false);
     }
   };
 
   const handleProfileUpdate = async (data: ProfileFormData) => {
     setIsUpdatingProfile(true);
+    const toastId = toast.loading("Updating profile...");
     try {
       const updateData: UpdateProfileData = {
         username: data.username,
@@ -179,6 +183,7 @@ export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
       toast.error("Failed to update profile");
     } finally {
       setIsUpdatingProfile(false);
+      toast.dismiss(toastId);
     }
   };
 
@@ -454,7 +459,7 @@ export function ProfileMenu({ menuTrigger }: { menuTrigger: ReactNode }) {
         </DialogContent>
       </Dialog>
 
-      {isLoggingOut && <BlockLoader showOverlay />}
+      {/* {isLoggingOut && <BlockLoader showOverlay />} */}
     </>
   );
 }
