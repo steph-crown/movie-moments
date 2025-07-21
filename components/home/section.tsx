@@ -13,6 +13,7 @@ import {
   TabsContent,
 } from "@/components/home/ui/tabs";
 import Link from "next/link";
+import { Quote } from "../quote";
 
 export function Section() {
   return (
@@ -62,13 +63,15 @@ export function Section() {
             A Simple Wish
           </h2>
         </div>
-        <Image
+        {/* <Image
           alt="Image"
           src="/images/Note.png"
           width={800}
           height={500}
           className="mx-auto shadow-md rounded-2xl"
-        />
+        /> */}
+
+        <Quote />
       </section>
       <section className="w-full flex flex-col rounded-3xl relative isolate gap-y-8 bg-[#F1F1FE] text-[#0A0A0A] overflow-hidden md:p-12 p-6">
         <Grainify />
@@ -271,6 +274,7 @@ export function Section() {
         <Button className="mx-auto text-[#6366f1] bg-white rounded-[0.625rem]">
           Start converting today
         </Button>
+        For the love of movies. Built by Stephen
       </section>
     </main>
   );
